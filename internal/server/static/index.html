@@ -1,51 +1,50 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>JobMonitor</title>
-  <link rel="stylesheet" href="/static/styles.css" />
-</head>
-<body>
-  <header>
-    <h1>JobMonitor</h1>
-    <p>Uptime status refreshed every 30 seconds.</p>
-  </header>
-  <main>
-    <section>
-      <h2>Latest Checks</h2>
-      <div id="latest-timestamp"></div>
-      <table id="latest-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>State</th>
-            <th>Status</th>
-            <th>Details</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <title>JobMonitor — System status</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="page-wrapper">
+      <header class="page-header">
+        <div>
+          <h1>System status</h1>
+          <p id="range-label" class="meta-text">Brak historii do wyświetlenia</p>
+        </div>
+        <div class="header-actions">
+          <span id="updated-at" class="meta-text">Ostatnia aktualizacja: —</span>
+          <button id="refresh-btn" type="button" class="ghost-button">Odśwież</button>
+        </div>
+      </header>
 
-    <section>
-      <h2>Uptime Summary</h2>
-      <div id="uptime-generated"></div>
-      <table id="uptime-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Uptime %</th>
-            <th>Checks</th>
-            <th>Passing</th>
-            <th>Failing</th>
-            <th>Last State</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-  </main>
+      <main>
+        <section class="status-grid" id="status-cards">
+          <div class="empty-state">
+            Brak danych. Upewnij się, że monitor działa i zebrał pierwsze próbki.
+          </div>
+        </section>
 
-  <script src="/static/ui.js"></script>
-</body>
+        <section class="legend">
+          <h2>Legenda</h2>
+          <div class="legend-items">
+            <span><span class="legend-dot state-success"></span> aktywna</span>
+            <span><span class="legend-dot state-warning"></span> przejściowa</span>
+            <span><span class="legend-dot state-error"></span> niedostępna</span>
+            <span><span class="legend-dot state-unknown"></span> brak danych</span>
+          </div>
+        </section>
+
+        <section class="incident-panel" id="incident-panel">
+          <div class="panel-head">
+            <h2>Ostatnie problemy</h2>
+            <span class="meta-text" id="incident-meta"></span>
+          </div>
+          <ul id="incident-list"></ul>
+        </section>
+      </main>
+    </div>
+
+    <script src="/static/ui.js"></script>
+  </body>
 </html>
