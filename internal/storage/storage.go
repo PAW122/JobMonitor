@@ -61,6 +61,23 @@ func (s *StatusStorage) History() []models.StatusEntry {
 	return copied
 }
 
+// HistoryN returns up to the last N history entries (chronological order). If n <= 0 returns all entries.
+func (s *StatusStorage) HistoryN(n int) []models.StatusEntry {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	total := len(s.history)
+	if n <= 0 || n >= total {
+		copied := make([]models.StatusEntry, total)
+		copy(copied, s.history)
+		return copied
+	}
+	start := total - n
+	copied := make([]models.StatusEntry, n)
+	copy(copied, s.history[start:])
+	return copied
+}
+
 func (s *StatusStorage) load() error {
 	data, err := os.ReadFile(s.path)
 	if err != nil {

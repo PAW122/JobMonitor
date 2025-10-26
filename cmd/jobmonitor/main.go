@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"jobmonitor/internal/cluster"
 	"jobmonitor/internal/config"
 	"jobmonitor/internal/monitor"
 	"jobmonitor/internal/server"
@@ -41,7 +42,12 @@ func main() {
 	mon.Start()
 	defer mon.Stop()
 
-	srv := server.New(*addr, store)
+	node := cluster.Node{ID: cfg.NodeID, Name: cfg.NodeName}
+	clusterSvc := cluster.NewService(node, store, cfg)
+	clusterSvc.Start()
+	defer clusterSvc.Stop()
+
+	srv := server.New(*addr, node, store, clusterSvc)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

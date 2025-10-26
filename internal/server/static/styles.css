@@ -131,6 +131,64 @@ main {
   font-size: 0.95rem;
 }
 
+.service-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.service-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.service-row + .service-row {
+  border-top: 1px solid rgba(95, 107, 123, 0.12);
+  padding-top: 0.75rem;
+}
+
+.service-row-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.service-row-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.service-label {
+  font-weight: 600;
+}
+
+.service-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.service-row-meta .meta-badge {
+  gap: 0.4rem;
+}
+
+.uptime-stat {
+  font-weight: 600;
+}
+
+.uptime-stat.medium {
+  color: #aa7a05;
+}
+
+.uptime-stat.low {
+  color: #a02f22;
+}
+
 .meta-badge {
   display: inline-flex;
   align-items: center;

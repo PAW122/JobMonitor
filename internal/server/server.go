@@ -5,11 +5,12 @@ import (
 	"embed"
 	"encoding/json"
 	"io/fs"
-	"math"
 	"net/http"
-	"sort"
+	"strconv"
 	"time"
 
+	"jobmonitor/internal/cluster"
+	"jobmonitor/internal/metrics"
 	"jobmonitor/internal/models"
 	"jobmonitor/internal/storage"
 )
@@ -19,13 +20,16 @@ var embeddedStatic embed.FS
 
 // Server wraps HTTP serving of API + static assets.
 type Server struct {
-	httpServer *http.Server
-	storage    *storage.StatusStorage
-	staticFS   fs.FS
+	httpServer     *http.Server
+	storage        *storage.StatusStorage
+	staticFS       fs.FS
+	node           cluster.Node
+	clusterService *cluster.Service
+	historyLimit   int
 }
 
 // New creates a configured HTTP server for the monitor.
-func New(addr string, storage *storage.StatusStorage) *Server {
+func New(addr string, node cluster.Node, storage *storage.StatusStorage, clusterService *cluster.Service) *Server {
 	staticFS, err := fs.Sub(embeddedStatic, "static")
 	if err != nil {
 		panic("static assets missing: " + err.Error())
@@ -33,9 +37,12 @@ func New(addr string, storage *storage.StatusStorage) *Server {
 
 	mux := http.NewServeMux()
 	s := &Server{
-		httpServer: &http.Server{Addr: addr, Handler: mux},
-		storage:    storage,
-		staticFS:   staticFS,
+		httpServer:     &http.Server{Addr: addr, Handler: mux},
+		storage:        storage,
+		staticFS:       staticFS,
+		node:           node,
+		clusterService: clusterService,
+		historyLimit:   200,
 	}
 	s.registerRoutes(mux)
 	return s
@@ -81,6 +88,10 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/status", s.handleLatest)
 	mux.HandleFunc("/api/history", s.handleHistory)
 	mux.HandleFunc("/api/uptime", s.handleUptime)
+	mux.HandleFunc("/api/node/status", s.handleNodeStatus)
+	mux.HandleFunc("/api/node/history", s.handleNodeHistory)
+	mux.HandleFunc("/api/node/uptime", s.handleNodeUptime)
+	mux.HandleFunc("/api/cluster", s.handleCluster)
 }
 
 func (s *Server) handleLatest(w http.ResponseWriter, _ *http.Request) {
@@ -95,74 +106,97 @@ func (s *Server) handleLatest(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, entry)
 }
 
-func (s *Server) handleHistory(w http.ResponseWriter, _ *http.Request) {
-	history := s.storage.History()
+func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
+	limit := parseLimit(r, s.historyLimit)
+	history := s.storage.HistoryN(limit)
 	writeJSON(w, http.StatusOK, history)
 }
 
-func (s *Server) handleUptime(w http.ResponseWriter, _ *http.Request) {
-	history := s.storage.History()
-	summary := computeUptime(history)
+func (s *Server) handleUptime(w http.ResponseWriter, r *http.Request) {
+	limit := parseLimit(r, s.historyLimit)
+	history := s.storage.HistoryN(limit)
+	summary := metrics.ComputeServiceUptime(history)
 	writeJSON(w, http.StatusOK, summary)
 }
 
-func computeUptime(entries []models.StatusEntry) []map[string]any {
-	type acc struct {
-		name      string
-		passing   int
-		failing   int
-		lastState string
+func (s *Server) handleNodeStatus(w http.ResponseWriter, _ *http.Request) {
+	entry, ok := s.storage.Latest()
+	resp := cluster.NodeStatusResponse{
+		Node:        s.node,
+		GeneratedAt: time.Now().UTC(),
 	}
-	state := make(map[string]*acc)
-	for _, entry := range entries {
-		for _, check := range entry.Checks {
-			target := state[check.ID]
-			if target == nil {
-				target = &acc{name: check.Name}
-				state[check.ID] = target
-			}
-			if check.OK {
-				target.passing++
-			} else {
-				target.failing++
-			}
-			if check.State != "" {
-				target.lastState = check.State
-			}
-		}
+	if ok {
+		resp.Status = &entry
 	}
-	keys := make([]string, 0, len(state))
-	for k := range state {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	now := time.Now().UTC()
-	results := make([]map[string]any, 0, len(keys))
-	for _, id := range keys {
-		data := state[id]
-		total := data.passing + data.failing
-		uptime := 0.0
-		if total > 0 {
-			uptime = float64(data.passing) / float64(total) * 100
-		}
-
-		results = append(results, map[string]any{
-			"id":               id,
-			"name":             data.name,
-			"uptime_percent":   round2(uptime),
-			"total_checks":     total,
-			"passing":          data.passing,
-			"failing":          data.failing,
-			"last_state":       data.lastState,
-			"generated_at_utc": now.Format(time.RFC3339),
-		})
-	}
-	return results
+	writeJSON(w, http.StatusOK, resp)
 }
 
-func round2(v float64) float64 {
-	return math.Round(v*100) / 100
+func (s *Server) handleNodeHistory(w http.ResponseWriter, r *http.Request) {
+	limit := parseLimit(r, s.historyLimit)
+	history := s.storage.HistoryN(limit)
+	resp := cluster.NodeHistoryResponse{
+		Node:        s.node,
+		History:     history,
+		GeneratedAt: time.Now().UTC(),
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (s *Server) handleNodeUptime(w http.ResponseWriter, r *http.Request) {
+	limit := parseLimit(r, s.historyLimit)
+	history := s.storage.HistoryN(limit)
+	resp := cluster.NodeUptimeResponse{
+		Node:        s.node,
+		Services:    metrics.ComputeServiceUptime(history),
+		GeneratedAt: time.Now().UTC(),
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (s *Server) handleCluster(w http.ResponseWriter, _ *http.Request) {
+	if s.clusterService == nil {
+		writeJSON(w, http.StatusOK, cluster.ClusterSnapshot{
+			GeneratedAt: time.Now().UTC(),
+			Nodes:       []cluster.PeerSnapshot{s.localPeerSnapshot()},
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, s.clusterService.Snapshot())
+}
+
+func (s *Server) localPeerSnapshot() cluster.PeerSnapshot {
+	latest, ok := s.storage.Latest()
+	history := s.storage.HistoryN(s.historyLimit)
+	var status *models.StatusEntry
+	if ok {
+		status = &latest
+	}
+	return cluster.PeerSnapshot{
+		Node:      s.node,
+		Status:    status,
+		History:   history,
+		Services:  metrics.ComputeServiceUptime(history),
+		UpdatedAt: time.Now().UTC(),
+		Source:    "local",
+	}
+}
+
+func parseLimit(r *http.Request, fallback int) int {
+	if fallback <= 0 {
+		return fallback
+	}
+	raw := r.URL.Query().Get("limit")
+	if raw == "" {
+		return fallback
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil || value <= 0 {
+		return fallback
+	}
+	if value > fallback {
+		return fallback
+	}
+	return value
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

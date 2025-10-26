@@ -1,19 +1,23 @@
 # JobMonitor
 
-JobMonitor to lekki serwis w Go, ktory monitoruje wskazane jednostki systemd, zapisuje ich status co kilka minut do pliku JSON i prezentuje wyniki przez prosty web UI z kafelkami w stylu status page.
+JobMonitor to lekki serwis w Go, ktory monitoruje wskazane jednostki systemd, zapisuje ich status do historii JSON i prezentuje wyniki przez web UI w stylu status page. Od teraz kazdy wezel moze pobierac dane z innych instancji JobMonitor, dzieki czemu na jednym pulpicie widac stan wielu serwerow.
 
 ## Funkcje
-- cykliczne sprawdzanie uslug przez `systemctl is-active` (opcjonalnie `sudo systemctl is-active`),
-- historia zapisow w `.dist/data/status_history.json` (znacznik czasu UTC + wynik dla kazdej uslugi),
-- API JSON: `/api/status`, `/api/history`, `/api/uptime`,
-- dashboard pod `http://localhost:8080` z kafelkami i timeline ostatnich prob, odswiezany co 30 sekund.
+- cykliczne wywolanie `systemctl is-active` (opcjonalnie z `sudo`) dla kazdej uslugi,
+- zapis historii prob w `.dist/data/status_history.json` (czas UTC + wynik dla kazdej uslugi),
+- lokalne API JSON (`/api/node/status`, `/api/node/history`, `/api/node/uptime`) oraz zbiorcze `/api/cluster`,
+- dashboard pod `http://localhost:8080` z kafelkami serwerow, przebiegiem uptime i lista incydentow,
+- agregacja danych z wielu wezlow JobMonitor i wyswietlenie ich na jednym pulpicie.
 
 ## Konfiguracja
-Stworz `config.yaml` w katalogu projektu i wpisz monitorowane uslugi:
+Stworz `config.yaml` w katalogu projektu. Minimalny przyklad z dwoma serwerami:
 
 ```yaml
 interval_minutes: 5
 data_directory: .dist/data
+node_id: node-a                 # unikalny identyfikator wezel
+node_name: Serwer A             # nazwa wyswietlana w UI
+peer_refresh_seconds: 60        # co ile sekund odswiezac peerow
 targets:
   - id: tsunamibot
     name: Tsunami Bot
@@ -22,9 +26,18 @@ targets:
   - id: nginx
     name: Reverse Proxy
     service: nginx.service
+peers:
+  - id: node-b
+    name: Serwer B
+    base_url: http://192.168.55.120:8080
+    enabled: true
+    # api_key: opcjonalny klucz jesli endpointy sa chronione
 ```
 
-Jesli dana usluga wymaga uprawnien administratora do sprawdzenia stanu, uruchom JobMonitor z odpowiednimi uprawnieniami (np. `sudo ./jobmonitor ...`). Mozesz tez ustawic `use_sudo: true` dla konkretnego celu, pamietaj jednak, ze `sudo` moze oczekiwac hasla, dlatego rekomendowane jest dodanie wpisu w sudoers lub uruchamianie programu jako root.
+**Wskazowki konfiguracyjne**
+- `node_id` musi byc unikalne w ramach klastra. Domyslnie przyjmowana jest nazwa hosta.
+- `peers` to lista innych instancji JobMonitor. Kazdy wpis okresla adres bazowy oraz opcjonalny klucz API (przesylany w naglowku `Authorization: Bearer`).
+- Jesli do odczytu stanu uslugi wymagane sa uprawnienia roota, uruchom JobMonitor jako root albo ustaw `use_sudo: true` przy konkretnej definicji w `targets`.
 
 ## Uruchomienie
 ```powershell
@@ -32,17 +45,18 @@ go build ./cmd/jobmonitor
 ./jobmonitor.exe -config config.yaml -addr :8080
 ```
 
-- pierwszy pomiar wykonywany jest od razu po starcie, kolejne wedlug `interval_minutes`,
-- logi przy starcie wyswietla liczbe uslug zaladowanych z konfiguracji.
+- pierwszy pomiar wykonywany jest natychmiast po starcie, kolejne wedlug `interval_minutes`,
+- w logu startowym zobaczysz liczbe monitorowanych uslug oraz identyfikator wezel,
+- agregator peerow startuje automatycznie i co `peer_refresh_seconds` pobiera dane z podanych instancji.
 
-## API i UI
-- `/api/status` — ostatni zestaw wynikow (stan kazdej uslugi),
-- `/api/history` — pelna historia z pliku JSON,
-- `/api/uptime` — procent uptime, liczba prob i ostatni stan dla kazdej uslugi,
-- `/` oraz `/static/*` — web UI z kafelkami, stanem bieżącym i timeline dla kazdej uslugi.
+## API i klastrowanie
+- `/api/status`, `/api/history`, `/api/uptime` - wsteczne kompatybilne endpointy z danymi lokalnymi,
+- `/api/node/status`, `/api/node/history?limit=200`, `/api/node/uptime` - dane jednego wezla (w odpowiedzi zawsze znajduje sie `node.id` i `node.name`),
+- `/api/cluster` - zlaczony widok lokalnego wezla oraz wszystkich skonfigurowanych peerow (to z tego endpointu korzysta UI),
+- odpowiedzi JSON zawieraja timeline pomiarow, gotowe statystyki uptime i info o ewentualnych bledach synchronizacji.
 
 ## Dane wyjsciowe
-Przykladowy wpis w `status_history.json`:
+Przykladowy rekord w `status_history.json`:
 
 ```json
 {
@@ -54,9 +68,10 @@ Przykladowy wpis w `status_history.json`:
 }
 ```
 
-Pole `state` zawiera wynik `systemctl is-active` (np. `active`, `inactive`, `failed`). `ok` przyjmuje `true` tylko dla stanu `active`, a `error` przechowuje dodatkowe informacje z `systemctl`, jesli polecenie sie nie powiodlo.
+Pole `state` zawiera wynik `systemctl is-active` (np. `active`, `inactive`, `failed`). `ok` przyjmuje `true` tylko dla stanu `active`, a `error` przechowuje tresc zwrocona przez `systemctl` kiedy polecenie zakonczylo sie status > 0.
 
-## Wskazowki
-- Uruchamiaj monitor na maszynie z systemd (Linux). Na innych platformach `systemctl` nie bedzie dostepne.
-- Po zmianie listy uslug zrestartuj JobMonitor; historia pozostanie nienaruszona.
-- Aby wyczyscic historie, zatrzymaj program i usun plik `.dist/data/status_history.json`. Przy kolejnym uruchomieniu odtworzy sie od zera.
+## Wskazowki eksploatacyjne
+- Uruchamiaj monitor na maszynie z systemd (Linux). Na innych platformach polecenie `systemctl` bedzie niedostepne.
+- Aby oczyscic historie, zatrzymaj serwis i usun `.dist/data/status_history.json`; po restarcie plik zostanie utworzony ponownie.
+- Jesli konfiguracja peerow zawiera klucz API, zadbaj o zsynchronizowanie go na wszystkich wezlach.
+- W UI lista incydentow wyswietla bledy ostatnich prob oraz ewentualne problemy z synchronizacja peerow.

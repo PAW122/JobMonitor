@@ -1,5 +1,8 @@
 interval_minutes: 5
 data_directory: .dist/data
+node_id: node-a
+node_name: Serwer A
+peer_refresh_seconds: 60
 targets:
   - id: tsunamibot
     name: Tsunami Bot
@@ -9,3 +12,8 @@ targets:
     name: Reverse Proxy
     service: nginx.service
     timeout_seconds: 5
+peers:
+  - id: node-b
+    name: Serwer B
+    base_url: http://192.168.55.120:8080
+    enabled: true

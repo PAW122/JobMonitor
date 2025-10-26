@@ -7,104 +7,80 @@ const incidentList = document.querySelector("#incident-list");
 const incidentMeta = document.querySelector("#incident-meta");
 
 const REFRESH_INTERVAL = 30_000;
+const HISTORY_POINTS = 80;
 
 refreshBtn?.addEventListener("click", () => {
   refreshBtn.disabled = true;
-  refresh().finally(() => {
-    refreshBtn.disabled = false;
-  });
+  refresh()
+    .catch((err) => console.error("Manual refresh failed", err))
+    .finally(() => (refreshBtn.disabled = false));
 });
 
 async function refresh() {
   try {
-    const [latest, uptime, history] = await Promise.all([
-      fetchJSON("/api/status"),
-      fetchJSON("/api/uptime"),
-      fetchJSON("/api/history"),
-    ]);
-    renderDashboard(latest, uptime, history);
+    const snapshot = await fetchJSON("/api/cluster");
+    renderDashboard(snapshot);
   } catch (err) {
     console.error("Refresh failed", err);
+    showErrorState(err);
   }
 }
 
-function renderDashboard(latest, uptimeStats, historyEntries) {
-  const latestTimestamp = latest?.timestamp ? new Date(latest.timestamp) : null;
-  if (latestTimestamp) {
-    updatedAtEl.textContent = `Ostatnia aktualizacja: ${formatTimestamp(latestTimestamp)}`;
+function renderDashboard(snapshot) {
+  const nodes = snapshot?.nodes || [];
+  const generatedAt = snapshot?.generated_at ? new Date(snapshot.generated_at) : null;
+
+  if (generatedAt) {
+    updatedAtEl.textContent = `Ostatnia aktualizacja: ${formatTimestamp(generatedAt)}`;
   } else {
     updatedAtEl.textContent = "Ostatnia aktualizacja: brak danych";
   }
 
-  const sortedHistory = [...(historyEntries || [])].sort((a, b) =>
-    new Date(a.timestamp) - new Date(b.timestamp),
-  );
-  if (sortedHistory.length) {
-    const first = new Date(sortedHistory[0].timestamp);
-    const last = new Date(sortedHistory[sortedHistory.length - 1].timestamp);
-    rangeLabel.textContent = `Zakres: ${formatRange(first, last)}`;
+  const range = deriveRange(nodes);
+  if (range) {
+    rangeLabel.textContent = `Zakres danych: ${formatRange(range.start, range.end)}`;
   } else {
-    rangeLabel.textContent = "Brak historii do wyświetlenia";
+    rangeLabel.textContent = "Brak historii do wyswietlenia";
   }
-
-  const uptimeMap = new Map(uptimeStats.map((item) => [item.id, item]));
-  const latestMap = new Map((latest.checks || []).map((check) => [check.id, check]));
-  const historyMap = buildHistoryMap(sortedHistory);
-
-  const serviceIds = new Set([
-    ...uptimeMap.keys(),
-    ...latestMap.keys(),
-    ...historyMap.keys(),
-  ]);
 
   statusCards.innerHTML = "";
 
-  if (serviceIds.size === 0) {
+  if (!nodes.length) {
     statusCards.innerHTML =
-      '<div class="empty-state">Brak danych. Upewnij się, że monitor zebrał pierwsze próbki.</div>';
-    renderIncidents([]);
-    return;
+      '<div class="empty-state">Brak danych. Upewnij sie, ze monitor ma pierwsze pomiary.</div>';
+  } else {
+    const sortedNodes = [...nodes].sort((a, b) =>
+      getNodeName(a).localeCompare(getNodeName(b), "pl-PL"),
+    );
+    sortedNodes.forEach((node) => statusCards.appendChild(renderNodeCard(node)));
   }
 
-  const services = [...serviceIds].map((id) => {
-    const latestCheck = latestMap.get(id);
-    const uptime = uptimeMap.get(id);
-    const history = historyMap.get(id) || [];
-    const name =
-      latestCheck?.name ?? uptime?.name ?? history[history.length - 1]?.name ?? id;
-    return { id, name, latestCheck, uptime, history };
-  });
-
-  services.sort((a, b) => a.name.localeCompare(b.name, "pl"));
-
-  for (const service of services) {
-    statusCards.appendChild(renderCard(service, latestTimestamp));
-  }
-
-  renderIncidents((latest.checks || []).filter((check) => !check.ok));
+  renderIncidents(nodes);
 }
 
-function renderCard(service, latestTimestamp) {
-  const { id, name, latestCheck, uptime, history } = service;
-  const card = document.createElement("article");
-  card.className = "status-card";
-
-  const uptimeValue = resolveUptime(uptime, history);
-  const uptimeClass = uptimeLevel(uptimeValue);
-  const uptimeLabel = Number.isFinite(uptimeValue)
-    ? `${uptimeValue.toFixed(2)}% uptime`
+function renderNodeCard(node) {
+  const info = node.node || {};
+  const nodeName = info.name || info.id || "Nieznany serwer";
+  const nodeId = info.id || "unknown";
+  const services = buildServiceData(node);
+  const nodeUptime = computeNodeUptime(services);
+  const uptimeClass = uptimeLevel(nodeUptime);
+  const uptimeLabel = Number.isFinite(nodeUptime)
+    ? `${nodeUptime.toFixed(2)}% uptime`
     : "Brak danych";
 
-  const chipInfo = resolveStateChip(latestCheck);
-  const failingCount = uptime?.failing ?? history.filter((h) => !h.ok).length;
-  const totalChecks = uptime?.total_checks ?? history.length;
+  const updatedAt = node.updated_at ? new Date(node.updated_at) : null;
+  const sourceLabel = node.source === "local" ? "lokalny" : "peer";
+
+  const card = document.createElement("article");
+  card.className = "status-card";
 
   const head = document.createElement("div");
   head.className = "card-head";
   head.innerHTML = `
     <div class="card-title">
-      <span class="service-name">${name}</span>
-      <span class="meta-text">Id: ${id}</span>
+      <span class="service-name">${nodeName}</span>
+      <span class="meta-text">ID: ${nodeId} - ${sourceLabel}</span>
     </div>
     <span class="uptime-pill ${uptimeClass}">${uptimeLabel}</span>
   `;
@@ -112,75 +88,234 @@ function renderCard(service, latestTimestamp) {
 
   const meta = document.createElement("div");
   meta.className = "card-meta";
-
-  meta.appendChild(createMetaBadge("Stan", `<span class="state-chip ${chipInfo.className}">${chipInfo.label}</span>`));
-  if (latestTimestamp) {
+  meta.appendChild(createMetaBadge("Uslugi", `<span>${services.length}</span>`));
+  if (updatedAt) {
+    meta.appendChild(
+      createMetaBadge("Synchronizacja", `<span>${formatTimestamp(updatedAt)}</span>`),
+    );
+  }
+  if (node.status?.timestamp) {
     meta.appendChild(
       createMetaBadge(
         "Ostatni pomiar",
-        `<span>${formatTimestamp(latestTimestamp)}</span>`,
-      ),
-    );
-  }
-  if (Number.isFinite(totalChecks) && totalChecks > 0) {
-    meta.appendChild(createMetaBadge("Łącznie prób", `<span>${totalChecks}</span>`));
-  }
-  if (failingCount > 0) {
-    meta.appendChild(
-      createMetaBadge(
-        "Niepowodzenia",
-        `<span class="meta-text" style="color:#a02f22;font-weight:600;">${failingCount}</span>`,
+        `<span>${formatTimestamp(new Date(node.status.timestamp))}</span>`,
       ),
     );
   }
   card.appendChild(meta);
 
-  const timeline = document.createElement("div");
-  timeline.className = "timeline";
-  const points = history.slice(-80); // show last 80 samples
-  if (points.length === 0) {
+  const list = document.createElement("div");
+  list.className = "service-list";
+  if (!services.length) {
     const placeholder = document.createElement("div");
     placeholder.className = "meta-text";
-    placeholder.textContent = "Brak historii dla tej usługi.";
-    timeline.appendChild(placeholder);
+    placeholder.textContent = "Brak historii dla tej maszyny.";
+    list.appendChild(placeholder);
   } else {
-    for (const point of points) {
-      const dot = document.createElement("span");
-      dot.className = `timeline-dot ${stateToClass(point.state, point.ok)}`;
-      const tooltipState = point.state ? point.state : point.ok ? "active" : "unknown";
-      const errorSuffix = point.error ? ` • ${point.error}` : "";
-      dot.title = `${formatTooltip(point.timestamp)} — ${tooltipState}${errorSuffix}`;
-      timeline.appendChild(dot);
-    }
+    services.forEach((service) => list.appendChild(renderServiceRow(service)));
   }
-  card.appendChild(timeline);
+  card.appendChild(list);
 
-  if (latestCheck?.error) {
+  if (node.error) {
     const errorBox = document.createElement("div");
     errorBox.className = "card-error";
-    errorBox.textContent = latestCheck.error;
+    errorBox.textContent = node.error;
     card.appendChild(errorBox);
   }
 
   return card;
 }
 
-function createMetaBadge(label, valueHTML) {
-  const wrapper = document.createElement("span");
-  wrapper.className = "meta-badge";
-  wrapper.innerHTML = `<span>${label}:</span>${valueHTML}`;
-  return wrapper;
+function renderServiceRow(service) {
+  const row = document.createElement("div");
+  row.className = "service-row";
+
+  const head = document.createElement("div");
+  head.className = "service-row-head";
+
+  const title = document.createElement("div");
+  title.className = "service-row-title";
+  title.innerHTML = `
+    <span class="service-label">${service.name}</span>
+    <span class="meta-text">ID: ${service.id}</span>
+  `;
+  head.appendChild(title);
+
+  const meta = document.createElement("div");
+  meta.className = "service-row-meta";
+
+  const stateChip = resolveStateChip(service.latestCheck);
+  meta.appendChild(
+    createMetaBadge("Stan", `<span class="state-chip ${stateChip.className}">${stateChip.label}</span>`),
+  );
+
+  if (service.metric && Number.isFinite(service.metric.uptime_percent)) {
+    const className = uptimeLevel(service.metric.uptime_percent);
+    meta.appendChild(
+      createMetaBadge(
+        "Uptime",
+        `<span class="uptime-stat ${className}">${service.metric.uptime_percent.toFixed(
+          2,
+        )}%</span>`,
+      ),
+    );
+    meta.appendChild(
+      createMetaBadge(
+        "Proby",
+        `<span>${service.metric.total_checks} (${service.metric.passing}/${service.metric.failing})</span>`,
+      ),
+    );
+  } else {
+    meta.appendChild(createMetaBadge("Uptime", "<span>-</span>"));
+  }
+
+  head.appendChild(meta);
+  row.appendChild(head);
+
+  const timeline = document.createElement("div");
+  timeline.className = "timeline";
+  const points = service.history.slice(-HISTORY_POINTS);
+  if (!points.length) {
+    const placeholder = document.createElement("div");
+    placeholder.className = "meta-text";
+    placeholder.textContent = "Brak danych historycznych.";
+    timeline.appendChild(placeholder);
+  } else {
+    points.forEach((point) => {
+      const dot = document.createElement("span");
+      dot.className = `timeline-dot ${stateToClass(point.state, point.ok)}`;
+      const errorSuffix = point.error ? ` EUR ${point.error}` : "";
+      dot.title = `${formatTooltip(point.timestamp)} EUR" ${point.state}${errorSuffix}`;
+      timeline.appendChild(dot);
+    });
+  }
+  row.appendChild(timeline);
+
+  if (service.latestCheck?.error) {
+    const errorBox = document.createElement("div");
+    errorBox.className = "card-error";
+    errorBox.textContent = service.latestCheck.error;
+    row.appendChild(errorBox);
+  }
+
+  return row;
 }
 
-function resolveUptime(uptime, history) {
-  if (uptime && Number.isFinite(uptime.uptime_percent)) {
-    return uptime.uptime_percent;
-  }
-  if (!history.length) {
+function buildServiceData(node) {
+  const metricsMap = new Map((node.services || []).map((svc) => [svc.id, svc]));
+  const latestMap = new Map(
+    (node.status?.checks || []).map((check) => [check.id, check]),
+  );
+
+  const historyMap = new Map();
+  (node.history || []).forEach((entry) => {
+    const timestamp = entry.timestamp;
+    (entry.checks || []).forEach((check) => {
+      const list = historyMap.get(check.id) || [];
+      list.push({
+        id: check.id,
+        name: check.name || check.id,
+        ok: Boolean(check.ok),
+        state: check.state || (check.ok ? "active" : "unknown"),
+        error: check.error,
+        timestamp,
+      });
+      historyMap.set(check.id, list);
+    });
+  });
+
+  const ids = new Set([
+    ...metricsMap.keys(),
+    ...latestMap.keys(),
+    ...historyMap.keys(),
+  ]);
+
+  const services = [];
+  ids.forEach((id) => {
+    const metric = metricsMap.get(id);
+    const latestCheck = latestMap.get(id);
+    const history = (historyMap.get(id) || []).sort(
+      (a, b) => new Date(a.timestamp) - new Date(b.timestamp),
+    );
+    let name =
+      metric?.name ||
+      latestCheck?.name ||
+      (history.length ? history[history.length - 1].name : null) ||
+      id;
+    services.push({ id, name, metric, latestCheck, history });
+  });
+
+  services.sort((a, b) => a.name.localeCompare(b.name, "pl-PL"));
+  return services;
+}
+
+function computeNodeUptime(services) {
+  const values = services
+    .map((svc) => svc.metric?.uptime_percent)
+    .filter((value) => Number.isFinite(value));
+  if (!values.length) {
     return Number.NaN;
   }
-  const ok = history.filter((h) => h.ok).length;
-  return (ok / history.length) * 100;
+  const sum = values.reduce((acc, value) => acc + value, 0);
+  return sum / values.length;
+}
+
+function deriveRange(nodes) {
+  let start = null;
+  let end = null;
+  nodes.forEach((node) => {
+    (node.history || []).forEach((entry) => {
+      const ts = new Date(entry.timestamp);
+      if (!start || ts < start) start = ts;
+      if (!end || ts > end) end = ts;
+    });
+  });
+  if (!start || !end) {
+    return null;
+  }
+  return { start, end };
+}
+
+function renderIncidents(nodes) {
+  const incidents = [];
+  nodes.forEach((node) => {
+    const nodeName = getNodeName(node);
+    if (node.error) {
+      incidents.push({
+        title: `${nodeName} EUR" blad synchronizacji`,
+        details: node.error,
+      });
+    }
+    (node.status?.checks || [])
+      .filter((check) => !check.ok)
+      .forEach((check) => {
+        incidents.push({
+          title: `${nodeName} / ${check.name || check.id}`,
+          details: `${check.state || "brak stanu"} EUR" ${check.error || "brak szczegolow"}`,
+        });
+      });
+  });
+
+  if (!incidents.length) {
+    incidentPanel.classList.remove("active");
+    incidentList.innerHTML = "";
+    incidentMeta.textContent = "";
+    return;
+  }
+
+  incidentPanel.classList.add("active");
+  incidentList.innerHTML = "";
+  incidents.forEach((item) => {
+    const el = document.createElement("li");
+    el.className = "incident-item";
+    el.innerHTML = `<strong>${item.title}</strong><span>${item.details}</span>`;
+    incidentList.appendChild(el);
+  });
+  incidentMeta.textContent = `${incidents.length} elementy wymagaja uwagi`;
+}
+
+function getNodeName(node) {
+  return node?.node?.name || node?.node?.id || "Nieznany serwer";
 }
 
 function uptimeLevel(value) {
@@ -194,9 +329,9 @@ function uptimeLevel(value) {
 
 function resolveStateChip(latestCheck) {
   if (!latestCheck) {
-    return { label: "Brak danych", className: "unknown" };
+    return { label: "brak danych", className: "unknown" };
   }
-  const state = latestCheck.state ? latestCheck.state.toLowerCase() : "";
+  const state = (latestCheck.state || "").toLowerCase();
   if (latestCheck.ok || state === "active" || state === "running") {
     return { label: state || "active", className: "" };
   }
@@ -207,26 +342,6 @@ function resolveStateChip(latestCheck) {
     return { label: "nieznany", className: "unknown" };
   }
   return { label: state, className: "error" };
-}
-
-function buildHistoryMap(historyEntries) {
-  const map = new Map();
-  for (const entry of historyEntries) {
-    const timestamp = entry.timestamp;
-    for (const check of entry.checks || []) {
-      const arr = map.get(check.id) || [];
-      arr.push({
-        id: check.id,
-        name: check.name,
-        ok: Boolean(check.ok),
-        state: check.state || (check.ok ? "active" : "unknown"),
-        error: check.error,
-        timestamp,
-      });
-      map.set(check.id, arr);
-    }
-  }
-  return map;
 }
 
 function stateToClass(state, ok) {
@@ -243,25 +358,11 @@ function stateToClass(state, ok) {
   return "state-error";
 }
 
-function renderIncidents(failingChecks) {
-  if (!failingChecks.length) {
-    incidentPanel.classList.remove("active");
-    incidentList.innerHTML = "";
-    incidentMeta.textContent = "";
-    return;
-  }
-  incidentPanel.classList.add("active");
-  incidentList.innerHTML = "";
-  failingChecks.forEach((check) => {
-    const item = document.createElement("li");
-    item.className = "incident-item";
-    item.innerHTML = `
-      <strong>${check.name}</strong>
-      <span>${check.state ?? "brak stanu"} — ${check.error ?? "Brak szczegółów"}</span>
-    `;
-    incidentList.appendChild(item);
-  });
-  incidentMeta.textContent = `${failingChecks.length} element(y) wymagają uwagi`;
+function createMetaBadge(label, valueHTML) {
+  const wrapper = document.createElement("span");
+  wrapper.className = "meta-badge";
+  wrapper.innerHTML = `<span>${label}:</span>${valueHTML}`;
+  return wrapper;
 }
 
 function formatTimestamp(date) {
@@ -285,13 +386,13 @@ function formatTooltip(isoDate) {
 }
 
 function formatRange(start, end) {
-  const fmt = new Intl.DateTimeFormat("pl-PL", {
+  const formatter = new Intl.DateTimeFormat("pl-PL", {
     month: "short",
     year: "numeric",
   });
-  const startLabel = fmt.format(start);
-  const endLabel = fmt.format(end);
-  return startLabel === endLabel ? startLabel : `${startLabel} – ${endLabel}`;
+  const startLabel = formatter.format(start);
+  const endLabel = formatter.format(end);
+  return startLabel === endLabel ? startLabel : `${startLabel} - ${endLabel}`;
 }
 
 async function fetchJSON(url) {
@@ -302,7 +403,14 @@ async function fetchJSON(url) {
   return res.json();
 }
 
+function showErrorState(err) {
+  statusCards.innerHTML = `<div class="empty-state">Blad pobierania danych: ${
+    err?.message || err
+  }</div>`;
+}
+
 refresh();
 setInterval(() => {
   refresh().catch((err) => console.error("Scheduled refresh failed", err));
 }, REFRESH_INTERVAL);
+
