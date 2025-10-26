@@ -1,0 +1,11 @@
+interval_minutes: 5
+data_directory: .dist/data
+targets:
+  - id: tsunamibot
+    name: Tsunami Bot
+    service: tsunamibot.service
+    timeout_seconds: 8
+  - id: nginx
+    name: Reverse Proxy
+    service: nginx.service
+    timeout_seconds: 5

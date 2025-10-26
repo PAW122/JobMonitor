@@ -27,8 +27,8 @@ async function loadLatest() {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${check.name}</td>
-      <td class="${check.ok ? "status-ok" : "status-fail"}">${check.ok ? "OK" : "FAIL"}</td>
-      <td>${check.latency_ms != null ? check.latency_ms.toFixed(0) : "-"}</td>
+      <td>${check.state ?? "-"}</td>
+      <td class="${check.ok ? "status-ok" : "status-fail"}">${check.ok ? "ACTIVE" : "INACTIVE"}</td>
       <td>${check.error ?? ""}</td>
     `;
     latestTableBody.appendChild(row);
@@ -52,7 +52,7 @@ async function loadUptime() {
       <td>${item.total_checks}</td>
       <td>${item.passing}</td>
       <td>${item.failing}</td>
-      <td>${item.avg_latency_ms != null ? item.avg_latency_ms.toFixed(0) : "-"}</td>
+      <td>${item.last_state ?? "-"}</td>
     `;
     uptimeTableBody.appendChild(row);
     generated = item.generated_at_utc;

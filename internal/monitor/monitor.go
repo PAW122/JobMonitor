@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 	"log"
-	"net/http"
+	"os/exec"
+	"strings"
 	"time"
 
 	"jobmonitor/internal/models"
@@ -16,7 +17,6 @@ type Monitor struct {
 	interval time.Duration
 	targets  []models.Target
 	storage  *storage.StatusStorage
-	client   *http.Client
 
 	stopCh chan struct{}
 	doneCh chan struct{}
@@ -32,7 +32,6 @@ func New(interval time.Duration, targets []models.Target, storage *storage.Statu
 		interval: interval,
 		targets:  targets,
 		storage:  storage,
-		client:   &http.Client{},
 		stopCh:   make(chan struct{}),
 		doneCh:   make(chan struct{}),
 	}
@@ -104,37 +103,36 @@ func (m *Monitor) run() {
 }
 
 func (m *Monitor) checkTarget(ctx context.Context, target models.Target) models.CheckResult {
-	start := time.Now()
 	res := models.CheckResult{
 		ID:   target.ID,
 		Name: target.Name,
 		OK:   false,
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target.URL, nil)
-	if err != nil {
-		msg := err.Error()
-		res.Error = &msg
-		return res
+	args := []string{"is-active", target.Service}
+	cmdName := "systemctl"
+	if target.UseSudo {
+		args = append([]string{"systemctl"}, args...)
+		cmdName = "sudo"
 	}
-
-	response, err := m.client.Do(req)
+	cmd := exec.CommandContext(ctx, cmdName, args...)
+	output, err := cmd.CombinedOutput()
+	state := strings.TrimSpace(string(output))
+	if state == "" {
+		state = "unknown"
+	}
+	res.State = state
+	res.OK = strings.EqualFold(state, "active")
 	if err != nil {
-		msg := err.Error()
-		if errors.Is(err, context.DeadlineExceeded) {
-			msg = "request timed out"
+		// Preserve useful stdout/stderr text if available.
+		msg := strings.TrimSpace(string(output))
+		var exitErr *exec.ExitError
+		if msg == "" && errors.As(err, &exitErr) {
+			msg = exitErr.Error()
 		}
-		res.Error = &msg
-		return res
-	}
-	defer response.Body.Close()
-
-	latency := float64(time.Since(start).Milliseconds())
-	res.LatencyMS = &latency
-	res.StatusCode = &response.StatusCode
-	res.OK = response.StatusCode >= 200 && response.StatusCode < 400
-	if !res.OK {
-		msg := http.StatusText(response.StatusCode)
+		if msg == "" {
+			msg = err.Error()
+		}
 		res.Error = &msg
 	}
 

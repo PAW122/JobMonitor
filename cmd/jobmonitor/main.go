@@ -29,6 +29,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("load config: %v", err)
 	}
+	log.Printf("Loaded %d target(s) from %s", len(cfg.Targets), *configPath)
 
 	historyPath := filepath.Join(cfg.DataDirectory, "status_history.json")
 	store, err := storage.NewStatusStorage(historyPath)

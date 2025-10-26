@@ -26,8 +26,8 @@ func DefaultConfig() Config {
 		Targets: []models.Target{
 			{
 				ID:             "example",
-				Name:           "Example Domain",
-				URL:            "https://example.org",
+				Name:           "Example Service (ssh)",
+				Service:        "ssh",
 				TimeoutSeconds: 10,
 			},
 		},
@@ -60,6 +60,11 @@ func Load(path string) (Config, error) {
 	}
 	if len(cfg.Targets) == 0 {
 		return Config{}, errors.New("configuration must define at least one target")
+	}
+	for _, t := range cfg.Targets {
+		if t.Service == "" {
+			return Config{}, errors.New("each target must define a service name")
+		}
 	}
 	return cfg, nil
 }

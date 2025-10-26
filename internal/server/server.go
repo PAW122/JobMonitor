@@ -108,10 +108,10 @@ func (s *Server) handleUptime(w http.ResponseWriter, _ *http.Request) {
 
 func computeUptime(entries []models.StatusEntry) []map[string]any {
 	type acc struct {
-		name    string
-		passing int
-		failing int
-		latency []float64
+		name      string
+		passing   int
+		failing   int
+		lastState string
 	}
 	state := make(map[string]*acc)
 	for _, entry := range entries {
@@ -126,8 +126,8 @@ func computeUptime(entries []models.StatusEntry) []map[string]any {
 			} else {
 				target.failing++
 			}
-			if check.LatencyMS != nil {
-				target.latency = append(target.latency, *check.LatencyMS)
+			if check.State != "" {
+				target.lastState = check.State
 			}
 		}
 	}
@@ -146,15 +146,6 @@ func computeUptime(entries []models.StatusEntry) []map[string]any {
 		if total > 0 {
 			uptime = float64(data.passing) / float64(total) * 100
 		}
-		var avgLatency *float64
-		if len(data.latency) > 0 {
-			sum := 0.0
-			for _, v := range data.latency {
-				sum += v
-			}
-			value := sum / float64(len(data.latency))
-			avgLatency = &value
-		}
 
 		results = append(results, map[string]any{
 			"id":               id,
@@ -163,7 +154,7 @@ func computeUptime(entries []models.StatusEntry) []map[string]any {
 			"total_checks":     total,
 			"passing":          data.passing,
 			"failing":          data.failing,
-			"avg_latency_ms":   avgLatency,
+			"last_state":       data.lastState,
 			"generated_at_utc": now.Format(time.RFC3339),
 		})
 	}
