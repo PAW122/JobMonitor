@@ -1,7 +1,7 @@
 interval_minutes: 5
 data_directory: .dist/data
 node_id: node-a
-node_name: Serwer A
+node_name: Server A
 peer_refresh_seconds: 60
 targets:
   - id: tsunamibot
@@ -14,6 +14,6 @@ targets:
     timeout_seconds: 5
 peers:
   - id: node-b
-    name: Serwer B
+    name: Server B
     base_url: http://192.168.55.120:8080
     enabled: true

@@ -1,23 +1,23 @@
 # JobMonitor
 
-JobMonitor to lekki serwis w Go, ktory monitoruje wskazane jednostki systemd, zapisuje ich status do historii JSON i prezentuje wyniki przez web UI w stylu status page. Od teraz kazdy wezel moze pobierac dane z innych instancji JobMonitor, dzieki czemu na jednym pulpicie widac stan wielu serwerow.
+JobMonitor is a lightweight Go service that watches selected systemd units, stores their status history in JSON, and exposes a status-page style dashboard. Each instance can also pull data from other JobMonitor nodes so you can observe multiple servers from one place.
 
-## Funkcje
-- cykliczne wywolanie `systemctl is-active` (opcjonalnie z `sudo`) dla kazdej uslugi,
-- zapis historii prob w `.dist/data/status_history.json` (czas UTC + wynik dla kazdej uslugi),
-- lokalne API JSON (`/api/node/status`, `/api/node/history`, `/api/node/uptime`) oraz zbiorcze `/api/cluster`,
-- dashboard pod `http://localhost:8080` z kafelkami serwerow, przebiegiem uptime i lista incydentow,
-- agregacja danych z wielu wezlow JobMonitor i wyswietlenie ich na jednym pulpicie.
+## Features
+- Periodic `systemctl is-active` checks (with optional `sudo` on a per-target basis).
+- JSON history stored at `.dist/data/status_history.json` (UTC timestamp plus result for every service).
+- REST endpoints for local node data (`/api/node/status`, `/api/node/history`, `/api/node/uptime`) and a combined `/api/cluster`.
+- Modern dark UI at `http://localhost:8080` with cards, sparkline-style timelines, and an incident list.
+- Peer aggregation: every node can fetch snapshots from other JobMonitor instances.
 
-## Konfiguracja
-Stworz `config.yaml` w katalogu projektu. Minimalny przyklad z dwoma serwerami:
+## Configuration
+Create a `config.yaml` alongside the binary. Example for two servers:
 
 ```yaml
 interval_minutes: 5
 data_directory: .dist/data
-node_id: node-a                 # unikalny identyfikator wezel
-node_name: Serwer A             # nazwa wyswietlana w UI
-peer_refresh_seconds: 60        # co ile sekund odswiezac peerow
+node_id: node-a
+node_name: Server A
+peer_refresh_seconds: 60
 targets:
   - id: tsunamibot
     name: Tsunami Bot
@@ -28,36 +28,33 @@ targets:
     service: nginx.service
 peers:
   - id: node-b
-    name: Serwer B
+    name: Server B
     base_url: http://192.168.55.120:8080
     enabled: true
-    # api_key: opcjonalny klucz jesli endpointy sa chronione
+    # api_key: optional if you protect remote endpoints
 ```
 
-**Wskazowki konfiguracyjne**
-- `node_id` musi byc unikalne w ramach klastra. Domyslnie przyjmowana jest nazwa hosta.
-- `peers` to lista innych instancji JobMonitor. Kazdy wpis okresla adres bazowy oraz opcjonalny klucz API (przesylany w naglowku `Authorization: Bearer`).
-- Jesli do odczytu stanu uslugi wymagane sa uprawnienia roota, uruchom JobMonitor jako root albo ustaw `use_sudo: true` przy konkretnej definicji w `targets`.
+Key notes:
+- `node_id` must be unique across the cluster; by default the hostname is used.
+- Set `use_sudo: true` on a target if `systemctl` requires elevated privileges (ensure sudoers is configured to avoid password prompts).
+- Peers are optional; leave the list empty for a single-node setup.
 
-## Uruchomienie
+## Running
 ```powershell
 go build ./cmd/jobmonitor
 ./jobmonitor.exe -config config.yaml -addr :8080
 ```
 
-- pierwszy pomiar wykonywany jest natychmiast po starcie, kolejne wedlug `interval_minutes`,
-- w logu startowym zobaczysz liczbe monitorowanych uslug oraz identyfikator wezel,
-- agregator peerow startuje automatycznie i co `peer_refresh_seconds` pobiera dane z podanych instancji.
+- The first sample is recorded immediately, subsequent ones follow `interval_minutes`.
+- At startup the log reports how many services were loaded along with the node identifier.
+- Peer sync runs in the background and refreshes every `peer_refresh_seconds`.
 
-## API i klastrowanie
-- `/api/status`, `/api/history`, `/api/uptime` - wsteczne kompatybilne endpointy z danymi lokalnymi,
-- `/api/node/status`, `/api/node/history?limit=200`, `/api/node/uptime` - dane jednego wezla (w odpowiedzi zawsze znajduje sie `node.id` i `node.name`),
-- `/api/cluster` - zlaczony widok lokalnego wezla oraz wszystkich skonfigurowanych peerow (to z tego endpointu korzysta UI),
-- odpowiedzi JSON zawieraja timeline pomiarow, gotowe statystyki uptime i info o ewentualnych bledach synchronizacji.
+## API surface
+- `/api/status`, `/api/history`, `/api/uptime` - legacy local endpoints kept for compatibility.
+- `/api/node/status`, `/api/node/history?limit=200`, `/api/node/uptime` - JSON payloads for the current node.
+- `/api/cluster` - aggregated snapshot combining the local node with all reachable peers (used by the UI).
 
-## Dane wyjsciowe
-Przykladowy rekord w `status_history.json`:
-
+## Sample history entry
 ```json
 {
   "timestamp": "2025-10-26T15:00:00Z",
@@ -68,10 +65,10 @@ Przykladowy rekord w `status_history.json`:
 }
 ```
 
-Pole `state` zawiera wynik `systemctl is-active` (np. `active`, `inactive`, `failed`). `ok` przyjmuje `true` tylko dla stanu `active`, a `error` przechowuje tresc zwrocona przez `systemctl` kiedy polecenie zakonczylo sie status > 0.
+`state` mirrors the output of `systemctl is-active`. The `ok` flag is `true` only when the state is `active`, and `error` contains stderr/stdout details when the command fails.
 
-## Wskazowki eksploatacyjne
-- Uruchamiaj monitor na maszynie z systemd (Linux). Na innych platformach polecenie `systemctl` bedzie niedostepne.
-- Aby oczyscic historie, zatrzymaj serwis i usun `.dist/data/status_history.json`; po restarcie plik zostanie utworzony ponownie.
-- Jesli konfiguracja peerow zawiera klucz API, zadbaj o zsynchronizowanie go na wszystkich wezlach.
-- W UI lista incydentow wyswietla bledy ostatnich prob oraz ewentualne problemy z synchronizacja peerow.
+## Operational tips
+- Run on a Linux host with systemd; on other platforms `systemctl` is unavailable.
+- To reset history, stop the service and delete `.dist/data/status_history.json`; the file will be recreated at next start.
+- If you secure the API with tokens, add the same `api_key` value to each peer entry.
+- The incident list in the UI highlights failing services and communication issues with peers for quick triage.

@@ -1,43 +1,43 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>JobMonitor — System status</title>
+    <title>JobMonitor - Status Dashboard</title>
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
     <div class="page-wrapper">
       <header class="page-header">
         <div>
-          <h1>System status</h1>
-          <p id="range-label" class="meta-text">Brak historii do wyświetlenia</p>
+          <h1>System Status</h1>
+          <p id="range-label" class="meta-text">No history available yet</p>
         </div>
         <div class="header-actions">
-          <span id="updated-at" class="meta-text">Ostatnia aktualizacja: —</span>
-          <button id="refresh-btn" type="button" class="ghost-button">Odśwież</button>
+          <span id="updated-at" class="meta-text">Last updated: --</span>
+          <button id="refresh-btn" type="button" class="ghost-button">Refresh</button>
         </div>
       </header>
 
       <main>
         <section class="status-grid" id="status-cards">
           <div class="empty-state">
-            Brak danych. Upewnij się, że monitor działa i zebrał pierwsze próbki.
+            No data collected. Make sure JobMonitor is running and has captured at least one sample.
           </div>
         </section>
 
         <section class="legend">
-          <h2>Legenda</h2>
+          <h2>Legend</h2>
           <div class="legend-items">
-            <span><span class="legend-dot state-success"></span> aktywna</span>
-            <span><span class="legend-dot state-warning"></span> przejściowa</span>
-            <span><span class="legend-dot state-error"></span> niedostępna</span>
-            <span><span class="legend-dot state-unknown"></span> brak danych</span>
+            <span><span class="legend-dot state-success"></span> active</span>
+            <span><span class="legend-dot state-warning"></span> transitioning</span>
+            <span><span class="legend-dot state-error"></span> unavailable</span>
+            <span><span class="legend-dot state-unknown"></span> no data</span>
           </div>
         </section>
 
         <section class="incident-panel" id="incident-panel">
           <div class="panel-head">
-            <h2>Ostatnie problemy</h2>
+            <h2>Recent incidents</h2>
             <span class="meta-text" id="incident-meta"></span>
           </div>
           <ul id="incident-list"></ul>

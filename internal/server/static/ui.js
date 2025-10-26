@@ -31,26 +31,26 @@ function renderDashboard(snapshot) {
   const generatedAt = snapshot?.generated_at ? new Date(snapshot.generated_at) : null;
 
   if (generatedAt) {
-    updatedAtEl.textContent = `Ostatnia aktualizacja: ${formatTimestamp(generatedAt)}`;
+    updatedAtEl.textContent = `Last updated: ${formatTimestamp(generatedAt)}`;
   } else {
-    updatedAtEl.textContent = "Ostatnia aktualizacja: brak danych";
+    updatedAtEl.textContent = "Last updated: no data";
   }
 
   const range = deriveRange(nodes);
   if (range) {
-    rangeLabel.textContent = `Zakres danych: ${formatRange(range.start, range.end)}`;
+    rangeLabel.textContent = `Data range: ${formatRange(range.start, range.end)}`;
   } else {
-    rangeLabel.textContent = "Brak historii do wyswietlenia";
+    rangeLabel.textContent = "No history available";
   }
 
   statusCards.innerHTML = "";
 
   if (!nodes.length) {
     statusCards.innerHTML =
-      '<div class="empty-state">Brak danych. Upewnij sie, ze monitor ma pierwsze pomiary.</div>';
+      '<div class="empty-state">No data yet. Make sure the monitor has collected at least one sample.</div>';
   } else {
     const sortedNodes = [...nodes].sort((a, b) =>
-      getNodeName(a).localeCompare(getNodeName(b), "pl-PL"),
+      getNodeName(a).localeCompare(getNodeName(b), "en-US"),
     );
     sortedNodes.forEach((node) => statusCards.appendChild(renderNodeCard(node)));
   }
@@ -67,7 +67,7 @@ function renderNodeCard(node) {
   const uptimeClass = uptimeLevel(nodeUptime);
   const uptimeLabel = Number.isFinite(nodeUptime)
     ? `${nodeUptime.toFixed(2)}% uptime`
-    : "Brak danych";
+    : "No data";
 
   const updatedAt = node.updated_at ? new Date(node.updated_at) : null;
   const sourceLabel = node.source === "local" ? "lokalny" : "peer";
@@ -88,16 +88,16 @@ function renderNodeCard(node) {
 
   const meta = document.createElement("div");
   meta.className = "card-meta";
-  meta.appendChild(createMetaBadge("Uslugi", `<span>${services.length}</span>`));
+  meta.appendChild(createMetaBadge("Services", `<span>${services.length}</span>`));
   if (updatedAt) {
     meta.appendChild(
-      createMetaBadge("Synchronizacja", `<span>${formatTimestamp(updatedAt)}</span>`),
+      createMetaBadge("Last sync", `<span>${formatTimestamp(updatedAt)}</span>`),
     );
   }
   if (node.status?.timestamp) {
     meta.appendChild(
       createMetaBadge(
-        "Ostatni pomiar",
+        "Latest sample",
         `<span>${formatTimestamp(new Date(node.status.timestamp))}</span>`,
       ),
     );
@@ -109,7 +109,7 @@ function renderNodeCard(node) {
   if (!services.length) {
     const placeholder = document.createElement("div");
     placeholder.className = "meta-text";
-    placeholder.textContent = "Brak historii dla tej maszyny.";
+    placeholder.textContent = "No history collected for this node.";
     list.appendChild(placeholder);
   } else {
     services.forEach((service) => list.appendChild(renderServiceRow(service)));
@@ -161,7 +161,7 @@ function renderServiceRow(service) {
     );
     meta.appendChild(
       createMetaBadge(
-        "Proby",
+        "Checks",
         `<span>${service.metric.total_checks} (${service.metric.passing}/${service.metric.failing})</span>`,
       ),
     );
@@ -178,7 +178,7 @@ function renderServiceRow(service) {
   if (!points.length) {
     const placeholder = document.createElement("div");
     placeholder.className = "meta-text";
-    placeholder.textContent = "Brak danych historycznych.";
+    placeholder.textContent = "No historical data.";
     timeline.appendChild(placeholder);
   } else {
     points.forEach((point) => {
@@ -245,7 +245,7 @@ function buildServiceData(node) {
     services.push({ id, name, metric, latestCheck, history });
   });
 
-  services.sort((a, b) => a.name.localeCompare(b.name, "pl-PL"));
+  services.sort((a, b) => a.name.localeCompare(b.name, "en-US"));
   return services;
 }
 
@@ -282,7 +282,7 @@ function renderIncidents(nodes) {
     const nodeName = getNodeName(node);
     if (node.error) {
       incidents.push({
-        title: `${nodeName} EUR" blad synchronizacji`,
+        title: `${nodeName} - sync error`,
         details: node.error,
       });
     }
@@ -291,7 +291,7 @@ function renderIncidents(nodes) {
       .forEach((check) => {
         incidents.push({
           title: `${nodeName} / ${check.name || check.id}`,
-          details: `${check.state || "brak stanu"} EUR" ${check.error || "brak szczegolow"}`,
+          details: `${check.state || "no state"} - ${check.error || "no details"}`,
         });
       });
   });
@@ -311,11 +311,11 @@ function renderIncidents(nodes) {
     el.innerHTML = `<strong>${item.title}</strong><span>${item.details}</span>`;
     incidentList.appendChild(el);
   });
-  incidentMeta.textContent = `${incidents.length} elementy wymagaja uwagi`;
+  incidentMeta.textContent = `${incidents.length} item(s) require attention`;
 }
 
 function getNodeName(node) {
-  return node?.node?.name || node?.node?.id || "Nieznany serwer";
+  return node?.node?.name || node?.node?.id || "Unknown server";
 }
 
 function uptimeLevel(value) {
@@ -329,7 +329,7 @@ function uptimeLevel(value) {
 
 function resolveStateChip(latestCheck) {
   if (!latestCheck) {
-    return { label: "brak danych", className: "unknown" };
+    return { label: "no data", className: "unknown" };
   }
   const state = (latestCheck.state || "").toLowerCase();
   if (latestCheck.ok || state === "active" || state === "running") {
@@ -339,7 +339,7 @@ function resolveStateChip(latestCheck) {
     return { label: state, className: "warning" };
   }
   if (!state) {
-    return { label: "nieznany", className: "unknown" };
+    return { label: "unknown", className: "unknown" };
   }
   return { label: state, className: "error" };
 }
@@ -366,7 +366,7 @@ function createMetaBadge(label, valueHTML) {
 }
 
 function formatTimestamp(date) {
-  return date.toLocaleString("pl-PL", {
+  return date.toLocaleString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -377,7 +377,7 @@ function formatTimestamp(date) {
 
 function formatTooltip(isoDate) {
   const date = new Date(isoDate);
-  return date.toLocaleString("pl-PL", {
+  return date.toLocaleString("en-US", {
     month: "short",
     day: "2-digit",
     hour: "2-digit",
@@ -386,7 +386,7 @@ function formatTooltip(isoDate) {
 }
 
 function formatRange(start, end) {
-  const formatter = new Intl.DateTimeFormat("pl-PL", {
+  const formatter = new Intl.DateTimeFormat("en-US", {
     month: "short",
     year: "numeric",
   });
@@ -404,7 +404,7 @@ async function fetchJSON(url) {
 }
 
 function showErrorState(err) {
-  statusCards.innerHTML = `<div class="empty-state">Blad pobierania danych: ${
+  statusCards.innerHTML = `<div class="empty-state">Error fetching data: ${
     err?.message || err
   }</div>`;
 }

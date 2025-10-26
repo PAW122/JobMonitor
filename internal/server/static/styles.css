@@ -1,7 +1,7 @@
 :root {
   font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-  background-color: #f6f8fb;
-  color: #1f2933;
+  background-color: #0a101d;
+  color: #e2e8f0;
 }
 
 *,
@@ -12,7 +12,7 @@
 
 body {
   margin: 0;
-  background-color: #f6f8fb;
+  background-color: #0a101d;
   display: flex;
   justify-content: center;
 }
@@ -38,7 +38,7 @@ body {
 
 .meta-text {
   font-size: 0.95rem;
-  color: #5f6b7b;
+  color: #8ea0c2;
 }
 
 .header-actions {
@@ -48,19 +48,20 @@ body {
 }
 
 .ghost-button {
-  border: 1px solid rgba(15, 122, 255, 0.35);
-  background: rgba(15, 122, 255, 0.08);
-  color: #0f7aff;
+  border: 1px solid rgba(59, 130, 246, 0.45);
+  background: rgba(59, 130, 246, 0.12);
+  color: #93c5fd;
   padding: 0.4rem 1rem;
   border-radius: 999px;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: background 0.2s ease, border 0.2s ease;
+  transition: background 0.2s ease, border 0.2s ease, color 0.2s ease;
 }
 
 .ghost-button:hover {
-  background: rgba(15, 122, 255, 0.16);
-  border-color: rgba(15, 122, 255, 0.55);
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.65);
+  color: #bfdbfe;
 }
 
 main {
@@ -76,13 +77,14 @@ main {
 }
 
 .status-card {
-  background: #ffffff;
+  background: #121a2c;
   border-radius: 18px;
-  box-shadow: 0 12px 32px rgba(15, 35, 95, 0.08);
+  box-shadow: 0 16px 40px rgba(3, 10, 24, 0.45);
   padding: 1.25rem 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.1);
 }
 
 .card-head {
@@ -101,6 +103,7 @@ main {
 .service-name {
   font-weight: 600;
   font-size: 1.1rem;
+  color: #f1f5f9;
 }
 
 .uptime-pill {
@@ -109,25 +112,25 @@ main {
   padding: 0.25rem 0.75rem;
   border-radius: 999px;
   align-self: flex-start;
-  background: rgba(15, 173, 99, 0.12);
-  color: #0b7c46;
+  background: rgba(52, 211, 153, 0.18);
+  color: #34d399;
 }
 
 .uptime-pill.medium {
-  background: rgba(251, 188, 4, 0.18);
-  color: #aa7a05;
+  background: rgba(251, 191, 36, 0.18);
+  color: #fbbf24;
 }
 
 .uptime-pill.low {
-  background: rgba(234, 67, 53, 0.18);
-  color: #a02f22;
+  background: rgba(248, 113, 113, 0.18);
+  color: #f87171;
 }
 
 .card-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem 1.2rem;
-  color: #556174;
+  color: #9ca3b5;
   font-size: 0.95rem;
 }
 
@@ -179,14 +182,15 @@ main {
 
 .uptime-stat {
   font-weight: 600;
+  color: #34d399;
 }
 
 .uptime-stat.medium {
-  color: #aa7a05;
+  color: #fbbf24;
 }
 
 .uptime-stat.low {
-  color: #a02f22;
+  color: #f87171;
 }
 
 .meta-badge {
@@ -196,29 +200,29 @@ main {
 }
 
 .state-chip {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
-  background: rgba(15, 157, 88, 0.14);
-  color: #0b7c46;
+  background: rgba(52, 211, 153, 0.18);
+  color: #34d399;
 }
 
 .state-chip.warning {
-  background: rgba(251, 188, 4, 0.18);
-  color: #aa7a05;
+  background: rgba(251, 191, 36, 0.18);
+  color: #fbbf24;
 }
 
 .state-chip.error {
-  background: rgba(234, 67, 53, 0.18);
-  color: #a02f22;
+  background: rgba(248, 113, 113, 0.22);
+  color: #f87171;
 }
 
 .state-chip.unknown {
-  background: rgba(95, 107, 123, 0.18);
-  color: #4a5565;
+  background: rgba(148, 163, 184, 0.18);
+  color: #94a3b8;
 }
 
 .timeline {
@@ -236,41 +240,42 @@ main {
 }
 
 .timeline-dot.state-success {
-  background: #0f9d58;
+  background: #34d399;
 }
 
 .timeline-dot.state-warning {
-  background: #fbbc04;
+  background: #fbbf24;
 }
 
 .timeline-dot.state-error {
-  background: #ea4335;
+  background: #f87171;
 }
 
 .timeline-dot.state-unknown {
-  background: #9aa0a6;
+  background: #64748b;
 }
 
 .card-error {
-  background: rgba(234, 67, 53, 0.08);
-  color: #8c2c25;
+  background: rgba(248, 113, 113, 0.12);
+  color: #fecaca;
   border-radius: 12px;
   padding: 0.6rem 0.75rem;
   font-size: 0.9rem;
 }
 
 .legend {
-  background: transparent;
+  background: rgba(15, 23, 42, 0.6);
   border-radius: 16px;
   padding: 1rem 1.25rem;
-  border: 1px solid rgba(95, 107, 123, 0.14);
-  color: #4a5565;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  color: #94a3b8;
 }
 
 .legend h2 {
   margin: 0 0 0.6rem;
   font-size: 1rem;
   font-weight: 600;
+  color: #e2e8f0;
 }
 
 .legend-items {
@@ -286,29 +291,30 @@ main {
   height: 10px;
   border-radius: 50%;
   margin-right: 0.4rem;
-  background: #0f9d58;
+  background: #34d399;
 }
 
 .legend-dot.state-warning {
-  background: #fbbc04;
+  background: #fbbf24;
 }
 
 .legend-dot.state-error {
-  background: #ea4335;
+  background: #f87171;
 }
 
 .legend-dot.state-unknown {
-  background: #9aa0a6;
+  background: #64748b;
 }
 
 .incident-panel {
   display: none;
   flex-direction: column;
   gap: 0.75rem;
-  background: #ffffff;
+  background: #111a2a;
   border-radius: 18px;
-  box-shadow: 0 12px 32px rgba(15, 35, 95, 0.06);
+  box-shadow: 0 12px 32px rgba(3, 10, 24, 0.4);
   padding: 1.25rem 1.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.12);
 }
 
 .incident-panel.active {
@@ -331,7 +337,7 @@ main {
 }
 
 .incident-item strong {
-  color: #a02f22;
+  color: #fca5a5;
 }
 
 .panel-head {
@@ -347,12 +353,13 @@ main {
 }
 
 .empty-state {
-  background: rgba(95, 107, 123, 0.08);
-  color: #4a5565;
+  background: rgba(15, 23, 42, 0.65);
+  color: #cbd5f5;
   padding: 1rem 1.2rem;
   border-radius: 16px;
   text-align: center;
   font-size: 0.95rem;
+  border: 1px solid rgba(148, 163, 184, 0.1);
 }
 
 @media (max-width: 640px) {
