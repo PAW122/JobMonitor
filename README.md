@@ -2,6 +2,8 @@
 
 JobMonitor is a lightweight Go service that watches selected systemd units, stores their status history in JSON, and exposes a status-page style dashboard. Each instance can also pull data from other JobMonitor nodes so you can observe multiple servers from one place.
 
+![JobMonitor dashboard](image.png)
+
 ## Features
 - Periodic `systemctl is-active` checks (with optional `sudo` on a per-target basis).
 - JSON history stored at `.dist/data/status_history.json` (UTC timestamp plus result for every service).
