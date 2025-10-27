@@ -59,8 +59,6 @@ function renderDashboard(snapshot) {
 
   const start = snapshot?.range_start ? new Date(snapshot.range_start) : null;
   const end = snapshot?.range_end ? new Date(snapshot.range_end) : null;
-  currentRangeStart = start;
-  currentRangeEnd = end;
   const rangeLabelText = RANGE_LABELS[currentRange] || "Selected range";
   if (start && end) {
     rangeLabel.textContent = `${rangeLabelText} (${formatRangeDetail(start, end)})`;
@@ -204,18 +202,17 @@ function renderServiceRow(service) {
 
   const timeline = document.createElement("div");
   timeline.className = "timeline";
-  const points = service.history.slice(-HISTORY_POINTS);
-  if (!points.length) {
+  const segments = service.timeline || [];
+  if (!segments.length) {
     const placeholder = document.createElement("div");
     placeholder.className = "meta-text";
     placeholder.textContent = "No historical data.";
     timeline.appendChild(placeholder);
   } else {
-    points.forEach((point) => {
+    segments.slice(-HISTORY_POINTS).forEach((segment) => {
       const dot = document.createElement("span");
-      dot.className = `timeline-dot ${stateToClass(point.state, point.ok)}`;
-      const errorSuffix = point.error ? ` EUR ${point.error}` : "";
-      dot.title = `${formatTooltip(point.timestamp)} EUR" ${point.state}${errorSuffix}`;
+      dot.className = `timeline-dot ${segment.className}`;
+      dot.title = segment.tooltip;
       timeline.appendChild(dot);
     });
   }
@@ -284,13 +281,19 @@ function buildServiceData(node, rangeStart, rangeEnd) {
       id,
       name,
     );
+    const timeline = buildTimelineSegments(
+      filledHistory,
+      rangeStart,
+      rangeEnd,
+      HISTORY_POINTS,
+    );
     services.push({
       id,
       name,
       metric,
       latestCheck,
       history: filledHistory,
-      intervalMs,
+      timeline,
     });
   });
 
@@ -415,6 +418,129 @@ function fillMissingHistory(history, intervalMs, rangeStart, rangeEnd, id, name)
   }
 
   return filled;
+}
+
+function buildTimelineSegments(history, rangeStart, rangeEnd, segmentsCount) {
+  if (!segmentsCount || segmentsCount <= 0) {
+    return [];
+  }
+
+  const sorted = [...history].sort(
+    (a, b) => new Date(a.timestamp) - new Date(b.timestamp),
+  );
+  const startMs =
+    rangeStart instanceof Date && !Number.isNaN(rangeStart.getTime())
+      ? rangeStart.getTime()
+      : (sorted.length
+      ? new Date(sorted[0].timestamp).getTime()
+      : Date.now() - segmentsCount * 60_000);
+  let endMs =
+    rangeEnd instanceof Date && !Number.isNaN(rangeEnd.getTime())
+      ? rangeEnd.getTime()
+      : (sorted.length
+      ? new Date(sorted[sorted.length - 1].timestamp).getTime()
+      : startMs + segmentsCount * 60_000);
+
+  if (endMs <= startMs) {
+    endMs = startMs + segmentsCount * 60_000;
+  }
+
+  const bucketSize = (endMs - startMs) / segmentsCount;
+  if (!Number.isFinite(bucketSize) || bucketSize <= 0) {
+    return [];
+  }
+
+  const segments = [];
+  let index = 0;
+  for (let i = 0; i < segmentsCount; i += 1) {
+    const bucketStart = startMs + bucketSize * i;
+    const bucketEnd = i === segmentsCount - 1 ? endMs : bucketStart + bucketSize;
+
+    while (
+      index < sorted.length &&
+      new Date(sorted[index].timestamp).getTime() < bucketStart
+    ) {
+      index += 1;
+    }
+
+    let cursor = index;
+    const bucketEntries = [];
+    while (cursor < sorted.length) {
+      const ts = new Date(sorted[cursor].timestamp).getTime();
+      if (ts >= bucketEnd) {
+        break;
+      }
+      bucketEntries.push(sorted[cursor]);
+      cursor += 1;
+    }
+    index = cursor;
+
+    const bucket = determineBucketState(bucketEntries);
+    const tooltip = formatBucketTooltip(bucketStart, bucketEnd, bucket.label);
+    segments.push({
+      className: `state-${bucket.className}`,
+      tooltip,
+    });
+  }
+
+  return segments;
+}
+
+function determineBucketState(entries) {
+  if (!entries || !entries.length) {
+    return { className: "missing", label: "No data" };
+  }
+  let hasError = false;
+  let hasWarning = false;
+  let hasSuccess = false;
+  let hasMissing = false;
+
+  entries.forEach((entry) => {
+    const state = (entry.state || "").toLowerCase();
+    if (entry.ok || state === "active" || state === "running") {
+      hasSuccess = true;
+      return;
+    }
+    if (state === "missing" || entry.synthetic) {
+      hasMissing = true;
+      return;
+    }
+    if (["activating", "deactivating", "reloading", "maintenance"].includes(state)) {
+      hasWarning = true;
+      return;
+    }
+    if (!state || state === "unknown") {
+      hasMissing = true;
+      return;
+    }
+    hasError = true;
+  });
+
+  if (hasError) {
+    return { className: "error", label: "Unavailable" };
+  }
+  if (hasWarning) {
+    return { className: "warning", label: "Transitioning" };
+  }
+  if (hasSuccess) {
+    return { className: "success", label: "Operational" };
+  }
+  if (hasMissing) {
+    return { className: "missing", label: "No data" };
+  }
+  return { className: "missing", label: "No data" };
+}
+
+function formatBucketTooltip(startMs, endMs, label) {
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const start = fmt.format(new Date(startMs));
+  const end = fmt.format(new Date(endMs));
+  return `${start} - ${end}: ${label}`;
 }
 
 function computeNodeUptime(services) {
