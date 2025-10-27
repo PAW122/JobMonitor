@@ -497,6 +497,17 @@ function determineBucketState(entries) {
 
   entries.forEach((entry) => {
     const state = (entry.state || "").toLowerCase();
+    const hasErrorState =
+      !entry.ok &&
+      (state === "inactive" ||
+        state === "failed" ||
+        state === "degraded" ||
+        (!state && entry?.error));
+
+    if (hasErrorState) {
+      hasError = true;
+      return;
+    }
     if (entry.ok || state === "active" || state === "running") {
       hasSuccess = true;
       return;
@@ -519,14 +530,14 @@ function determineBucketState(entries) {
   if (hasError) {
     return { className: "error", label: "Unavailable" };
   }
+  if (hasMissing) {
+    return { className: "missing", label: "No data" };
+  }
   if (hasWarning) {
     return { className: "warning", label: "Transitioning" };
   }
   if (hasSuccess) {
     return { className: "success", label: "Operational" };
-  }
-  if (hasMissing) {
-    return { className: "missing", label: "No data" };
   }
   return { className: "missing", label: "No data" };
 }
