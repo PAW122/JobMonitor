@@ -287,6 +287,10 @@ main {
   background: #64748b;
 }
 
+.timeline-dot.state-missing {
+  background: #f97316;
+}
+
 .card-error {
   background: rgba(248, 113, 113, 0.12);
   color: #fecaca;

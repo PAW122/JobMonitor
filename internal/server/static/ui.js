@@ -59,6 +59,8 @@ function renderDashboard(snapshot) {
 
   const start = snapshot?.range_start ? new Date(snapshot.range_start) : null;
   const end = snapshot?.range_end ? new Date(snapshot.range_end) : null;
+  currentRangeStart = start;
+  currentRangeEnd = end;
   const rangeLabelText = RANGE_LABELS[currentRange] || "Selected range";
   if (start && end) {
     rangeLabel.textContent = `${rangeLabelText} (${formatRangeDetail(start, end)})`;
@@ -75,17 +77,19 @@ function renderDashboard(snapshot) {
     const sortedNodes = [...nodes].sort((a, b) =>
       getNodeName(a).localeCompare(getNodeName(b), "en-US"),
     );
-    sortedNodes.forEach((node) => statusCards.appendChild(renderNodeCard(node)));
+    sortedNodes.forEach((node) =>
+      statusCards.appendChild(renderNodeCard(node, start, end)),
+    );
   }
 
   renderIncidents(nodes);
 }
 
-function renderNodeCard(node) {
+function renderNodeCard(node, rangeStart, rangeEnd) {
   const info = node.node || {};
   const nodeName = info.name || info.id || "Unknown server";
   const nodeId = info.id || "unknown";
-  const services = buildServiceData(node);
+  const services = buildServiceData(node, rangeStart, rangeEnd);
   const nodeUptime = computeNodeUptime(services);
   const uptimeClass = uptimeLevel(nodeUptime);
   const uptimeLabel = Number.isFinite(nodeUptime)
@@ -227,7 +231,7 @@ function renderServiceRow(service) {
   return row;
 }
 
-function buildServiceData(node) {
+function buildServiceData(node, rangeStart, rangeEnd) {
   const targetMap = new Map((node.targets || []).map((t) => [t.id, t]));
   const metricsMap = new Map((node.services || []).map((svc) => [svc.id, svc]));
   const latestMap = new Map(
@@ -271,11 +275,146 @@ function buildServiceData(node) {
       latestCheck?.name ||
       (history.length ? history[history.length - 1].name : null) ||
       id;
-    services.push({ id, name, metric, latestCheck, history });
+    const intervalMs = getIntervalMs(node, history);
+    const filledHistory = fillMissingHistory(
+      history,
+      intervalMs,
+      rangeStart,
+      rangeEnd,
+      id,
+      name,
+    );
+    services.push({
+      id,
+      name,
+      metric,
+      latestCheck,
+      history: filledHistory,
+      intervalMs,
+    });
   });
 
   services.sort((a, b) => a.name.localeCompare(b.name, "en-US"));
   return services;
+}
+
+function getIntervalMs(node, history) {
+  const minutes = Number(node?.node?.interval_minutes);
+  if (Number.isFinite(minutes) && minutes > 0) {
+    return minutes * 60_000;
+  }
+  return estimateIntervalFromHistory(history);
+}
+
+function estimateIntervalFromHistory(history) {
+  if (!history || history.length < 2) {
+    return 5 * 60_000;
+  }
+  const diffs = [];
+  for (let i = 1; i < history.length; i += 1) {
+    const prev = new Date(history[i - 1].timestamp).getTime();
+    const curr = new Date(history[i].timestamp).getTime();
+    const diff = curr - prev;
+    if (diff > 0) {
+      diffs.push(diff);
+    }
+  }
+  if (!diffs.length) {
+    return 5 * 60_000;
+  }
+  diffs.sort((a, b) => a - b);
+  const mid = Math.floor(diffs.length / 2);
+  const median =
+    diffs.length % 2 === 0
+      ? (diffs[mid - 1] + diffs[mid]) / 2
+      : diffs[mid];
+  return Math.max(median, 60_000);
+}
+
+function fillMissingHistory(history, intervalMs, rangeStart, rangeEnd, id, name) {
+  if (!Array.isArray(history)) {
+    history = [];
+  }
+  if (!intervalMs || !Number.isFinite(intervalMs) || intervalMs <= 0) {
+    return history;
+  }
+
+  const startMs = rangeStart instanceof Date ? rangeStart.getTime() : null;
+  const endMs = rangeEnd instanceof Date ? rangeEnd.getTime() : null;
+  const sorted = [...history].sort(
+    (a, b) => new Date(a.timestamp) - new Date(b.timestamp),
+  );
+
+  const createMissing = (ts) => ({
+    id,
+    name,
+    ok: false,
+    state: "missing",
+    error: "no data",
+    timestamp: new Date(ts).toISOString(),
+    synthetic: true,
+  });
+
+  const withinRange = (ts) => {
+    if (startMs != null && ts < startMs) {
+      return false;
+    }
+    if (endMs != null && ts > endMs) {
+      return false;
+    }
+    return true;
+  };
+
+  if (!sorted.length) {
+    if (startMs != null && endMs != null) {
+      const filled = [];
+      for (let ts = startMs; ts <= endMs; ts += intervalMs) {
+        filled.push(createMissing(ts));
+      }
+      return filled;
+    }
+    return [];
+  }
+
+  const filled = [];
+  const threshold = intervalMs * 1.5;
+
+  const pushMissingSlots = (fromTs, toTs) => {
+    let ts = fromTs + intervalMs;
+    while (ts < toTs - intervalMs * 0.25) {
+      if (!withinRange(ts)) {
+        if (endMs != null && ts > endMs) {
+          break;
+        }
+        ts += intervalMs;
+        continue;
+      }
+      filled.push(createMissing(ts));
+      ts += intervalMs;
+    }
+  };
+
+  const firstTs = new Date(sorted[0].timestamp).getTime();
+  if (startMs != null && firstTs - startMs > intervalMs * 0.5) {
+    pushMissingSlots(startMs - intervalMs, firstTs);
+  }
+
+  let prevTs = firstTs;
+  filled.push(sorted[0]);
+  for (let i = 1; i < sorted.length; i += 1) {
+    const currentTs = new Date(sorted[i].timestamp).getTime();
+    if (currentTs - prevTs > threshold) {
+      pushMissingSlots(prevTs, currentTs);
+    }
+    filled.push(sorted[i]);
+    prevTs = currentTs;
+  }
+
+  if (endMs != null && endMs - prevTs > intervalMs * 0.5) {
+    pushMissingSlots(prevTs, endMs + intervalMs);
+  }
+
+  return filled;
 }
 
 function computeNodeUptime(services) {
@@ -348,6 +487,9 @@ function resolveStateChip(latestCheck) {
   if (latestCheck.ok || state === "active" || state === "running") {
     return { label: state || "active", className: "" };
   }
+  if (state === "missing") {
+    return { label: "missing data", className: "warning" };
+  }
   if (["activating", "deactivating", "reloading"].includes(state)) {
     return { label: state, className: "warning" };
   }
@@ -361,6 +503,9 @@ function stateToClass(state, ok) {
   const normalized = (state || "").toLowerCase();
   if (ok || normalized === "active" || normalized === "running") {
     return "state-success";
+  }
+  if (normalized === "missing") {
+    return "state-missing";
   }
   if (["activating", "deactivating", "reloading", "maintenance"].includes(normalized)) {
     return "state-warning";
