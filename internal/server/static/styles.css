@@ -272,7 +272,7 @@ main {
 }
 
 .timeline-dot.state-success {
-  background: #34d399;
+  background: #22c55e;
 }
 
 .timeline-dot.state-warning {
@@ -327,19 +327,23 @@ main {
   height: 10px;
   border-radius: 50%;
   margin-right: 0.4rem;
-  background: #34d399;
+  background: #22c55e;
 }
 
 .legend-dot.state-warning {
-  background: #fbbf24;
+  background: #f59e0b;
 }
 
 .legend-dot.state-error {
-  background: #f87171;
+  background: #ef4444;
 }
 
 .legend-dot.state-unknown {
-  background: #64748b;
+  background: #94a3b8;
+}
+
+.legend-dot.state-missing {
+  background: #f97316;
 }
 
 .incident-panel {
