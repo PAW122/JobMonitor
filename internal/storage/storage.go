@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
@@ -58,6 +59,25 @@ func (s *StatusStorage) History() []models.StatusEntry {
 
 	copied := make([]models.StatusEntry, len(s.history))
 	copy(copied, s.history)
+	return copied
+}
+
+// HistorySince returns a copy of entries from the first whose timestamp is >= cutoff.
+func (s *StatusStorage) HistorySince(cutoff time.Time) []models.StatusEntry {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if len(s.history) == 0 {
+		return nil
+	}
+	idx := sort.Search(len(s.history), func(i int) bool {
+		return !s.history[i].Timestamp.Before(cutoff)
+	})
+	if idx >= len(s.history) {
+		return nil
+	}
+	copied := make([]models.StatusEntry, len(s.history)-idx)
+	copy(copied, s.history[idx:])
 	return copied
 }
 

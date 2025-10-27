@@ -5,9 +5,26 @@ const refreshBtn = document.querySelector("#refresh-btn");
 const incidentPanel = document.querySelector("#incident-panel");
 const incidentList = document.querySelector("#incident-list");
 const incidentMeta = document.querySelector("#incident-meta");
+const rangeButtons = document.querySelectorAll(".range-button");
 
 const REFRESH_INTERVAL = 30_000;
 const HISTORY_POINTS = 80;
+const RANGE_LABELS = {
+  "24h": "Last 24 hours",
+  "30d": "Last 30 days",
+};
+
+let currentRange = "24h";
+
+rangeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const { range } = button.dataset;
+    if (!range || range === currentRange) {
+      return;
+    }
+    refresh(range).catch((err) => console.error("Range switch failed", err));
+  });
+});
 
 refreshBtn?.addEventListener("click", () => {
   refreshBtn.disabled = true;
@@ -16,9 +33,10 @@ refreshBtn?.addEventListener("click", () => {
     .finally(() => (refreshBtn.disabled = false));
 });
 
-async function refresh() {
+async function refresh(rangeKey = currentRange) {
+  setActiveRange(rangeKey);
   try {
-    const snapshot = await fetchJSON("/api/cluster");
+    const snapshot = await fetchJSON(`/api/cluster?range=${currentRange}`);
     renderDashboard(snapshot);
   } catch (err) {
     console.error("Refresh failed", err);
@@ -29,6 +47,9 @@ async function refresh() {
 function renderDashboard(snapshot) {
   const nodes = snapshot?.nodes || [];
   const generatedAt = snapshot?.generated_at ? new Date(snapshot.generated_at) : null;
+  if (snapshot?.range) {
+    setActiveRange(snapshot.range);
+  }
 
   if (generatedAt) {
     updatedAtEl.textContent = `Last updated: ${formatTimestamp(generatedAt)}`;
@@ -36,11 +57,13 @@ function renderDashboard(snapshot) {
     updatedAtEl.textContent = "Last updated: no data";
   }
 
-  const range = deriveRange(nodes);
-  if (range) {
-    rangeLabel.textContent = `Data range: ${formatRange(range.start, range.end)}`;
+  const start = snapshot?.range_start ? new Date(snapshot.range_start) : null;
+  const end = snapshot?.range_end ? new Date(snapshot.range_end) : null;
+  const rangeLabelText = RANGE_LABELS[currentRange] || "Selected range";
+  if (start && end) {
+    rangeLabel.textContent = `${rangeLabelText} (${formatRangeDetail(start, end)})`;
   } else {
-    rangeLabel.textContent = "No history available";
+    rangeLabel.textContent = rangeLabelText;
   }
 
   statusCards.innerHTML = "";
@@ -60,7 +83,7 @@ function renderDashboard(snapshot) {
 
 function renderNodeCard(node) {
   const info = node.node || {};
-  const nodeName = info.name || info.id || "Nieznany serwer";
+  const nodeName = info.name || info.id || "Unknown server";
   const nodeId = info.id || "unknown";
   const services = buildServiceData(node);
   const nodeUptime = computeNodeUptime(services);
@@ -70,7 +93,7 @@ function renderNodeCard(node) {
     : "No data";
 
   const updatedAt = node.updated_at ? new Date(node.updated_at) : null;
-  const sourceLabel = node.source === "local" ? "lokalny" : "peer";
+  const sourceLabel = node.source === "local" ? "local" : "peer";
 
   const card = document.createElement("article");
   card.className = "status-card";
@@ -165,6 +188,9 @@ function renderServiceRow(service) {
         `<span>${service.metric.total_checks} (${service.metric.passing}/${service.metric.failing})</span>`,
       ),
     );
+    if (service.metric.missing) {
+      meta.appendChild(createMetaBadge("Missing", `<span>${service.metric.missing}</span>`));
+    }
   } else {
     meta.appendChild(createMetaBadge("Uptime", "<span>-</span>"));
   }
@@ -202,6 +228,7 @@ function renderServiceRow(service) {
 }
 
 function buildServiceData(node) {
+  const targetMap = new Map((node.targets || []).map((t) => [t.id, t]));
   const metricsMap = new Map((node.services || []).map((svc) => [svc.id, svc]));
   const latestMap = new Map(
     (node.status?.checks || []).map((check) => [check.id, check]),
@@ -225,6 +252,7 @@ function buildServiceData(node) {
   });
 
   const ids = new Set([
+    ...targetMap.keys(),
     ...metricsMap.keys(),
     ...latestMap.keys(),
     ...historyMap.keys(),
@@ -238,6 +266,7 @@ function buildServiceData(node) {
       (a, b) => new Date(a.timestamp) - new Date(b.timestamp),
     );
     let name =
+      targetMap.get(id)?.name ||
       metric?.name ||
       latestCheck?.name ||
       (history.length ? history[history.length - 1].name : null) ||
@@ -258,22 +287,6 @@ function computeNodeUptime(services) {
   }
   const sum = values.reduce((acc, value) => acc + value, 0);
   return sum / values.length;
-}
-
-function deriveRange(nodes) {
-  let start = null;
-  let end = null;
-  nodes.forEach((node) => {
-    (node.history || []).forEach((entry) => {
-      const ts = new Date(entry.timestamp);
-      if (!start || ts < start) start = ts;
-      if (!end || ts > end) end = ts;
-    });
-  });
-  if (!start || !end) {
-    return null;
-  }
-  return { start, end };
 }
 
 function renderIncidents(nodes) {
@@ -395,6 +408,16 @@ function formatRange(start, end) {
   return startLabel === endLabel ? startLabel : `${startLabel} - ${endLabel}`;
 }
 
+function formatRangeDetail(start, end) {
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${fmt.format(start)} – ${fmt.format(end)}`;
+}
+
 async function fetchJSON(url) {
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) {
@@ -413,4 +436,13 @@ refresh();
 setInterval(() => {
   refresh().catch((err) => console.error("Scheduled refresh failed", err));
 }, REFRESH_INTERVAL);
+
+function setActiveRange(range) {
+  if (range) {
+    currentRange = range;
+  }
+  rangeButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.range === currentRange);
+  });
+}
 

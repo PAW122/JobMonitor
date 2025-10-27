@@ -47,6 +47,38 @@ body {
   align-items: center;
 }
 
+.range-switch {
+  display: inline-flex;
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+  padding: 0.2rem;
+  gap: 0.3rem;
+}
+
+.range-button {
+  border: none;
+  background: transparent;
+  color: #cbd5f5;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.range-button:hover {
+  background: rgba(59, 130, 246, 0.16);
+  color: #e2e8f0;
+}
+
+.range-button.active {
+  background: rgba(59, 130, 246, 0.28);
+  color: #1e293b;
+}
+
 .ghost-button {
   border: 1px solid rgba(59, 130, 246, 0.45);
   background: rgba(59, 130, 246, 0.12);
@@ -370,6 +402,13 @@ main {
 
   .header-actions {
     align-self: stretch;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .range-switch {
+    width: 100%;
     justify-content: space-between;
   }
 

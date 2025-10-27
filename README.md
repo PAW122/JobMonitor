@@ -8,7 +8,7 @@ JobMonitor is a lightweight Go service that watches selected systemd units, stor
 - Periodic `systemctl is-active` checks (with optional `sudo` on a per-target basis).
 - JSON history stored at `.dist/data/status_history.json` (UTC timestamp plus result for every service).
 - REST endpoints for local node data (`/api/node/status`, `/api/node/history`, `/api/node/uptime`) and a combined `/api/cluster`.
-- Modern dark UI at `http://localhost:8080` with cards, sparkline-style timelines, and an incident list.
+- Modern dark UI at `http://localhost:8080` with cards, sparkline-style timelines, and an incident list. Default view covers the last 24 hours with a one-click toggle for a 30-day history, and missed samples count towards downtime.
 - Peer aggregation: every node can fetch snapshots from other JobMonitor instances.
 
 ## Configuration
@@ -53,8 +53,10 @@ go build ./cmd/jobmonitor
 
 ## API surface
 - `/api/status`, `/api/history`, `/api/uptime` - legacy local endpoints kept for compatibility.
-- `/api/node/status`, `/api/node/history?limit=200`, `/api/node/uptime` - JSON payloads for the current node.
-- `/api/cluster` - aggregated snapshot combining the local node with all reachable peers (used by the UI).
+- `/api/node/status` - latest snapshot metadata for the current node.
+- `/api/node/history?range=24h|30d` - filtered history window for the current node.
+- `/api/node/uptime?range=24h|30d` - uptime calculations that treat missing samples as downtime.
+- `/api/cluster?range=24h|30d` - aggregated snapshot combining the local node with all reachable peers (used by the UI).
 
 ## Sample history entry
 ```json

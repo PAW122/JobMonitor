@@ -17,17 +17,19 @@ import (
 )
 
 const (
-	defaultHistoryLimit = 200
-	requestTimeout      = 10 * time.Second
+	requestTimeout = 10 * time.Second
+	maxWindow      = 30 * 24 * time.Hour
 )
 
 // Service aggregates local storage with peer snapshots.
 type Service struct {
-	node         Node
-	storage      *storage.StatusStorage
-	peers        []config.Peer
-	refresh      time.Duration
-	historyLimit int
+	node       Node
+	storage    *storage.StatusStorage
+	targets    []models.Target
+	interval   time.Duration
+	peers      []config.Peer
+	refresh    time.Duration
+	historyCap int
 
 	client *http.Client
 
@@ -39,10 +41,19 @@ type Service struct {
 }
 
 // NewService initialises cluster aggregator for a node.
-func NewService(node Node, storage *storage.StatusStorage, cfg config.Config) *Service {
+func NewService(node Node, storage *storage.StatusStorage, cfg config.Config, targets []models.Target) *Service {
 	refresh := time.Duration(cfg.PeerRefreshSec) * time.Second
 	if refresh < 15*time.Second {
 		refresh = 15 * time.Second
+	}
+
+	interval := time.Duration(cfg.IntervalMinutes) * time.Minute
+	historyCap := 200
+	if interval > 0 {
+		expected := int(maxWindow/interval) + 5
+		if expected > historyCap {
+			historyCap = expected
+		}
 	}
 
 	transport := &http.Transport{
@@ -59,29 +70,35 @@ func NewService(node Node, storage *storage.StatusStorage, cfg config.Config) *S
 
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Service{
-		node:         node,
-		storage:      storage,
-		peers:        cfg.Peers,
-		refresh:      refresh,
-		historyLimit: defaultHistoryLimit,
-		client:       &http.Client{Transport: transport, Timeout: requestTimeout},
-		peersData:    make(map[string]PeerSnapshot),
-		ctx:          ctx,
-		cancel:       cancel,
+		node:       node,
+		storage:    storage,
+		targets:    targets,
+		interval:   interval,
+		peers:      cfg.Peers,
+		refresh:    refresh,
+		historyCap: historyCap,
+		client:     &http.Client{Transport: transport, Timeout: requestTimeout},
+		peersData:  make(map[string]PeerSnapshot),
+		ctx:        ctx,
+		cancel:     cancel,
 	}
 }
 
-// Start launches background synchronisation with peers.
+// Start launches the background synchronisation loop.
 func (s *Service) Start() {
 	go s.run()
 }
 
-// Stop terminates background synchronisation.
+// Stop requests the background synchronisation loop to exit.
 func (s *Service) Stop() {
 	s.cancel()
 }
 
 func (s *Service) run() {
+	if len(s.peers) == 0 {
+		return
+	}
+
 	ticker := time.NewTicker(s.refresh)
 	defer ticker.Stop()
 
@@ -94,6 +111,80 @@ func (s *Service) run() {
 		case <-s.ctx.Done():
 			return
 		}
+	}
+}
+
+// Snapshot assembles local and remote data for the requested window.
+func (s *Service) Snapshot(start, end time.Time) ClusterSnapshot {
+	now := time.Now().UTC()
+	if end.After(now) {
+		end = now
+	}
+
+	nodes := []PeerSnapshot{s.localSnapshot(start, end)}
+
+	s.mu.RLock()
+	for _, snap := range s.peersData {
+		nodes = append(nodes, s.materialisePeerSnapshot(snap, start, end))
+	}
+	s.mu.RUnlock()
+
+	return ClusterSnapshot{
+		GeneratedAt: now,
+		Range:       windowKey(start, end),
+		RangeStart:  start,
+		RangeEnd:    end,
+		Nodes:       nodes,
+	}
+}
+
+func (s *Service) localSnapshot(start, end time.Time) PeerSnapshot {
+	history := s.storage.HistorySince(start)
+	history = filterHistory(history, start, end)
+	latest, ok := s.storage.Latest()
+	var status *models.StatusEntry
+	if ok {
+		status = &latest
+	}
+
+	services := metrics.ComputeServiceUptime(history, start, end, s.interval, s.targets)
+
+	return PeerSnapshot{
+		Node: Node{
+			ID:              s.node.ID,
+			Name:            s.node.Name,
+			IntervalMinutes: int(s.interval / time.Minute),
+		},
+		Status:    status,
+		History:   history,
+		Services:  services,
+		Targets:   s.targets,
+		UpdatedAt: time.Now().UTC(),
+		Source:    "local",
+	}
+}
+
+func (s *Service) materialisePeerSnapshot(snapshot PeerSnapshot, start, end time.Time) PeerSnapshot {
+	history := filterHistory(snapshot.History, start, end)
+	interval := time.Duration(snapshot.Node.IntervalMinutes) * time.Minute
+	if interval <= 0 {
+		interval = s.interval
+	}
+	endpoint := end
+	if endpoint.Before(start) {
+		endpoint = start
+	}
+	services := metrics.ComputeServiceUptime(history, start, endpoint, interval, snapshot.Targets)
+
+	return PeerSnapshot{
+		Node:      snapshot.Node,
+		Status:    snapshot.Status,
+		History:   history,
+		Services:  services,
+		Targets:   snapshot.Targets,
+		UpdatedAt: snapshot.UpdatedAt,
+		Error:     snapshot.Error,
+		Source:    snapshot.Source,
 	}
 }
 
@@ -131,65 +222,28 @@ func (s *Service) fetchPeer(peer config.Peer) error {
 	}
 
 	historyResp := NodeHistoryResponse{}
-	historyURL := fmt.Sprintf("%s/api/node/history?limit=%d", baseURL, s.historyLimit)
+	historyURL := fmt.Sprintf("%s/api/node/history?range=30d&limit=%d", baseURL, s.historyCap)
 	if err := s.getJSON(historyURL, peer.APIKey, &historyResp); err != nil {
 		return fmt.Errorf("history fetch failed: %w", err)
 	}
 
-	uptimeResp := NodeUptimeResponse{}
-	if err := s.getJSON(baseURL+"/api/node/uptime", peer.APIKey, &uptimeResp); err != nil {
-		return fmt.Errorf("uptime fetch failed: %w", err)
-	}
+	targets := deriveTargets(statusResp.Status, historyResp.History)
 
 	s.mu.Lock()
 	s.peersData[peer.ID] = PeerSnapshot{
-		Node:      Node{ID: peer.ID, Name: resolveName(peer.Name, statusResp.Node.Name, peer.ID)},
+		Node: Node{
+			ID:              peer.ID,
+			Name:            resolveName(peer.Name, statusResp.Node.Name, peer.ID),
+			IntervalMinutes: statusResp.Node.IntervalMinutes,
+		},
 		Status:    statusResp.Status,
-		History:   limitHistory(historyResp.History, s.historyLimit),
-		Services:  uptimeResp.Services,
+		History:   capHistory(historyResp.History, s.historyCap),
+		Targets:   targets,
 		UpdatedAt: time.Now().UTC(),
 		Source:    "peer",
 	}
 	s.mu.Unlock()
 	return nil
-}
-
-func (s *Service) resolveLocalSnapshot() PeerSnapshot {
-	latest, ok := s.storage.Latest()
-	history := s.storage.HistoryN(s.historyLimit)
-	uptime := metrics.ComputeServiceUptime(history)
-	var status *models.StatusEntry
-	if ok {
-		status = &latest
-	}
-
-	return PeerSnapshot{
-		Node: Node{
-			ID:   s.node.ID,
-			Name: s.node.Name,
-		},
-		Status:    status,
-		History:   history,
-		Services:  uptime,
-		UpdatedAt: time.Now().UTC(),
-		Source:    "local",
-	}
-}
-
-// Snapshot gathers local and remote data for API responses.
-func (s *Service) Snapshot() ClusterSnapshot {
-	nodes := []PeerSnapshot{s.resolveLocalSnapshot()}
-
-	s.mu.RLock()
-	for _, snap := range s.peersData {
-		nodes = append(nodes, snap)
-	}
-	s.mu.RUnlock()
-
-	return ClusterSnapshot{
-		GeneratedAt: time.Now().UTC(),
-		Nodes:       nodes,
-	}
 }
 
 func (s *Service) getJSON(url, apiKey string, dest any) error {
@@ -217,12 +271,28 @@ func (s *Service) getJSON(url, apiKey string, dest any) error {
 	return json.NewDecoder(resp.Body).Decode(dest)
 }
 
-func limitHistory(entries []models.StatusEntry, limit int) []models.StatusEntry {
+func filterHistory(entries []models.StatusEntry, start, end time.Time) []models.StatusEntry {
+	if len(entries) == 0 {
+		return nil
+	}
+	out := make([]models.StatusEntry, 0, len(entries))
+	for _, entry := range entries {
+		if entry.Timestamp.Before(start) || entry.Timestamp.After(end) {
+			continue
+		}
+		out = append(out, entry)
+	}
+	return out
+}
+
+func capHistory(entries []models.StatusEntry, limit int) []models.StatusEntry {
 	if limit <= 0 || len(entries) <= limit {
 		return entries
 	}
 	start := len(entries) - limit
-	return entries[start:]
+	copied := make([]models.StatusEntry, limit)
+	copy(copied, entries[start:])
+	return copied
 }
 
 func resolveName(configured, remote, fallback string) string {
@@ -233,4 +303,41 @@ func resolveName(configured, remote, fallback string) string {
 		return remote
 	}
 	return fallback
+}
+
+func deriveTargets(status *models.StatusEntry, history []models.StatusEntry) []models.Target {
+	seen := make(map[string]bool)
+	targets := make([]models.Target, 0)
+
+	add := func(id, name string) {
+		if id == "" || seen[id] {
+			return
+		}
+		seen[id] = true
+		targets = append(targets, models.Target{ID: id, Name: name})
+	}
+
+	if status != nil {
+		for _, check := range status.Checks {
+			add(check.ID, check.Name)
+		}
+	}
+	for _, entry := range history {
+		for _, check := range entry.Checks {
+			add(check.ID, check.Name)
+		}
+	}
+	return targets
+}
+
+func windowKey(start, end time.Time) string {
+	duration := end.Sub(start)
+	switch {
+	case duration >= 30*24*time.Hour:
+		return "30d"
+	case duration >= 24*time.Hour:
+		return "24h"
+	default:
+		return ""
+	}
 }

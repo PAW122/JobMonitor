@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"jobmonitor/internal/cluster"
@@ -24,15 +25,26 @@ type Server struct {
 	storage        *storage.StatusStorage
 	staticFS       fs.FS
 	node           cluster.Node
+	interval       time.Duration
+	targets        []models.Target
 	clusterService *cluster.Service
 	historyLimit   int
 }
 
 // New creates a configured HTTP server for the monitor.
-func New(addr string, node cluster.Node, storage *storage.StatusStorage, clusterService *cluster.Service) *Server {
+func New(addr string, node cluster.Node, storage *storage.StatusStorage, clusterService *cluster.Service, targets []models.Target) *Server {
 	staticFS, err := fs.Sub(embeddedStatic, "static")
 	if err != nil {
 		panic("static assets missing: " + err.Error())
+	}
+
+	interval := time.Duration(node.IntervalMinutes) * time.Minute
+	historyLimit := 200
+	if interval > 0 {
+		expected := int((30 * 24 * time.Hour) / interval)
+		if expected+5 > historyLimit {
+			historyLimit = expected + 5
+		}
 	}
 
 	mux := http.NewServeMux()
@@ -41,9 +53,12 @@ func New(addr string, node cluster.Node, storage *storage.StatusStorage, cluster
 		storage:        storage,
 		staticFS:       staticFS,
 		node:           node,
+		interval:       interval,
+		targets:        targets,
 		clusterService: clusterService,
-		historyLimit:   200,
+		historyLimit:   historyLimit,
 	}
+	s.node.IntervalMinutes = int(interval / time.Minute)
 	s.registerRoutes(mux)
 	return s
 }
@@ -107,15 +122,20 @@ func (s *Server) handleLatest(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
-	limit := parseLimit(r, s.historyLimit)
-	history := s.storage.HistoryN(limit)
+	window := parseWindow(r)
+	history := s.storage.HistorySince(window.start)
+	history = filterHistory(history, window.start, window.end)
+	if limit := parseLimit(r, s.historyLimit); limit > 0 && len(history) > limit {
+		history = history[len(history)-limit:]
+	}
 	writeJSON(w, http.StatusOK, history)
 }
 
 func (s *Server) handleUptime(w http.ResponseWriter, r *http.Request) {
-	limit := parseLimit(r, s.historyLimit)
-	history := s.storage.HistoryN(limit)
-	summary := metrics.ComputeServiceUptime(history)
+	window := parseWindow(r)
+	history := s.storage.HistorySince(window.start)
+	history = filterHistory(history, window.start, window.end)
+	summary := metrics.ComputeServiceUptime(history, window.start, window.end, s.interval, s.targets)
 	writeJSON(w, http.StatusOK, summary)
 }
 
@@ -125,6 +145,7 @@ func (s *Server) handleNodeStatus(w http.ResponseWriter, _ *http.Request) {
 		Node:        s.node,
 		GeneratedAt: time.Now().UTC(),
 	}
+	resp.Node.IntervalMinutes = int(s.interval / time.Minute)
 	if ok {
 		resp.Status = &entry
 	}
@@ -132,50 +153,71 @@ func (s *Server) handleNodeStatus(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) handleNodeHistory(w http.ResponseWriter, r *http.Request) {
-	limit := parseLimit(r, s.historyLimit)
-	history := s.storage.HistoryN(limit)
+	window := parseWindow(r)
+	history := s.storage.HistorySince(window.start)
+	history = filterHistory(history, window.start, window.end)
+	if limit := parseLimit(r, s.historyLimit); limit > 0 && len(history) > limit {
+		history = history[len(history)-limit:]
+	}
 	resp := cluster.NodeHistoryResponse{
 		Node:        s.node,
 		History:     history,
 		GeneratedAt: time.Now().UTC(),
+		Range:       window.key,
+		RangeStart:  window.start,
+		RangeEnd:    window.end,
 	}
+	resp.Node.IntervalMinutes = int(s.interval / time.Minute)
 	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) handleNodeUptime(w http.ResponseWriter, r *http.Request) {
-	limit := parseLimit(r, s.historyLimit)
-	history := s.storage.HistoryN(limit)
+	window := parseWindow(r)
+	history := s.storage.HistorySince(window.start)
+	history = filterHistory(history, window.start, window.end)
 	resp := cluster.NodeUptimeResponse{
 		Node:        s.node,
-		Services:    metrics.ComputeServiceUptime(history),
+		Services:    metrics.ComputeServiceUptime(history, window.start, window.end, s.interval, s.targets),
 		GeneratedAt: time.Now().UTC(),
+		Range:       window.key,
+		RangeStart:  window.start,
+		RangeEnd:    window.end,
 	}
+	resp.Node.IntervalMinutes = int(s.interval / time.Minute)
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func (s *Server) handleCluster(w http.ResponseWriter, _ *http.Request) {
+func (s *Server) handleCluster(w http.ResponseWriter, r *http.Request) {
+	window := parseWindow(r)
 	if s.clusterService == nil {
+		local := s.localPeerSnapshot(window.start, window.end)
 		writeJSON(w, http.StatusOK, cluster.ClusterSnapshot{
 			GeneratedAt: time.Now().UTC(),
-			Nodes:       []cluster.PeerSnapshot{s.localPeerSnapshot()},
+			Range:       window.key,
+			RangeStart:  window.start,
+			RangeEnd:    window.end,
+			Nodes:       []cluster.PeerSnapshot{local},
 		})
 		return
 	}
-	writeJSON(w, http.StatusOK, s.clusterService.Snapshot())
+	writeJSON(w, http.StatusOK, s.clusterService.Snapshot(window.start, window.end))
 }
 
-func (s *Server) localPeerSnapshot() cluster.PeerSnapshot {
+func (s *Server) localPeerSnapshot(start, end time.Time) cluster.PeerSnapshot {
+	history := s.storage.HistorySince(start)
+	history = filterHistory(history, start, end)
 	latest, ok := s.storage.Latest()
-	history := s.storage.HistoryN(s.historyLimit)
 	var status *models.StatusEntry
 	if ok {
 		status = &latest
 	}
+	services := metrics.ComputeServiceUptime(history, start, end, s.interval, s.targets)
 	return cluster.PeerSnapshot{
 		Node:      s.node,
 		Status:    status,
 		History:   history,
-		Services:  metrics.ComputeServiceUptime(history),
+		Services:  services,
+		Targets:   s.targets,
 		UpdatedAt: time.Now().UTC(),
 		Source:    "local",
 	}
@@ -197,6 +239,45 @@ func parseLimit(r *http.Request, fallback int) int {
 		return fallback
 	}
 	return value
+}
+
+type window struct {
+	key      string
+	start    time.Time
+	end      time.Time
+	duration time.Duration
+}
+
+func parseWindow(r *http.Request) window {
+	raw := strings.ToLower(r.URL.Query().Get("range"))
+	now := time.Now().UTC()
+	duration := 24 * time.Hour
+	key := "24h"
+	if raw == "30d" || raw == "30day" || raw == "30days" {
+		duration = 30 * 24 * time.Hour
+		key = "30d"
+	}
+	start := now.Add(-duration)
+	return window{
+		key:      key,
+		start:    start,
+		end:      now,
+		duration: duration,
+	}
+}
+
+func filterHistory(entries []models.StatusEntry, start, end time.Time) []models.StatusEntry {
+	if len(entries) == 0 {
+		return nil
+	}
+	out := make([]models.StatusEntry, 0, len(entries))
+	for _, entry := range entries {
+		if entry.Timestamp.Before(start) || entry.Timestamp.After(end) {
+			continue
+		}
+		out = append(out, entry)
+	}
+	return out
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
