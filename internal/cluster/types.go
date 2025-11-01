@@ -10,9 +10,10 @@ import (
 
 // Node describes a JobMonitor instance.
 type Node struct {
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	IntervalMinutes int    `json:"interval_minutes"`
+	ID                          string `json:"id"`
+	Name                        string `json:"name"`
+	IntervalMinutes             int    `json:"interval_minutes"`
+	ConnectivityIntervalSeconds int    `json:"connectivity_interval_seconds,omitempty"`
 }
 
 // Peer wraps configuration for a remote node.
@@ -30,12 +31,13 @@ type NodeStatusResponse struct {
 
 // NodeHistoryResponse describes history payload from /api/node/history.
 type NodeHistoryResponse struct {
-	Node        Node                 `json:"node"`
-	History     []models.StatusEntry `json:"history"`
-	GeneratedAt time.Time            `json:"generated_at"`
-	Range       string               `json:"range"`
-	RangeStart  time.Time            `json:"range_start"`
-	RangeEnd    time.Time            `json:"range_end"`
+	Node         Node                        `json:"node"`
+	History      []models.StatusEntry        `json:"history"`
+	Connectivity []models.ConnectivityStatus `json:"connectivity,omitempty"`
+	GeneratedAt  time.Time                   `json:"generated_at"`
+	Range        string                      `json:"range"`
+	RangeStart   time.Time                   `json:"range_start"`
+	RangeEnd     time.Time                   `json:"range_end"`
 }
 
 // NodeUptimeResponse describes uptime payload from /api/node/uptime.
@@ -50,15 +52,16 @@ type NodeUptimeResponse struct {
 
 // PeerSnapshot stores last known data for a peer.
 type PeerSnapshot struct {
-	Node         Node                       `json:"node"`
-	Status       *models.StatusEntry        `json:"status,omitempty"`
-	Connectivity *models.ConnectivityStatus `json:"connectivity,omitempty"`
-	History      []models.StatusEntry       `json:"history"`
-	Services     []metrics.ServiceUptime    `json:"services"`
-	Targets      []models.Target            `json:"targets,omitempty"`
-	UpdatedAt    time.Time                  `json:"updated_at"`
-	Error        string                     `json:"error,omitempty"`
-	Source       string                     `json:"source"`
+	Node                Node                        `json:"node"`
+	Status              *models.StatusEntry         `json:"status,omitempty"`
+	Connectivity        *models.ConnectivityStatus  `json:"connectivity,omitempty"`
+	ConnectivityHistory []models.ConnectivityStatus `json:"connectivity_history,omitempty"`
+	History             []models.StatusEntry        `json:"history"`
+	Services            []metrics.ServiceUptime     `json:"services"`
+	Targets             []models.Target             `json:"targets,omitempty"`
+	UpdatedAt           time.Time                   `json:"updated_at"`
+	Error               string                      `json:"error,omitempty"`
+	Source              string                      `json:"source"`
 }
 
 // ClusterSnapshot is returned by /api/cluster.

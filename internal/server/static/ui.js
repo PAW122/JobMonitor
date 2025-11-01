@@ -193,6 +193,11 @@ function renderNodeCard(node, rangeStart, rangeEnd) {
   }
   card.appendChild(meta);
 
+  const connectivityData = buildConnectivityData(node, rangeStart, rangeEnd);
+  if (connectivityData) {
+    card.appendChild(renderConnectivitySection(connectivityData));
+  }
+
   const list = document.createElement("div");
   list.className = "service-list";
   if (!services.length) {
@@ -290,6 +295,264 @@ function renderServiceRow(service) {
   }
 
   return row;
+}
+
+function renderConnectivitySection(data) {
+  if (!data) {
+    return null;
+  }
+  const section = document.createElement("div");
+  section.className = "connectivity-section";
+
+  const head = document.createElement("div");
+  head.className = "connectivity-head";
+
+  const left = document.createElement("div");
+  left.className = "connectivity-head-left";
+  const title = document.createElement("span");
+  title.className = "section-title";
+  title.textContent = `Connectivity (${data.rangeLabel})`;
+  left.appendChild(title);
+
+  const summary = document.createElement("span");
+  summary.className = "meta-text connectivity-summary";
+  summary.textContent = data.summary;
+  left.appendChild(summary);
+  head.appendChild(left);
+
+  const right = document.createElement("div");
+  right.className = "connectivity-head-right";
+  if (data.latestChip) {
+    const chip = document.createElement("span");
+    chip.className = `state-chip ${data.latestChip.className}`;
+    chip.textContent = data.latestChip.label;
+    right.appendChild(chip);
+  }
+  if (data.latestLatency) {
+    const latency = document.createElement("span");
+    latency.className = "meta-text connectivity-latency";
+    latency.textContent = data.latestLatency;
+    right.appendChild(latency);
+  }
+  head.appendChild(right);
+  section.appendChild(head);
+
+  const timeline = document.createElement("div");
+  timeline.className = "timeline connectivity-timeline";
+  if (!Array.isArray(data.timeline) || !data.timeline.length) {
+    const placeholder = document.createElement("div");
+    placeholder.className = "meta-text";
+    placeholder.textContent = "No connectivity data.";
+    timeline.appendChild(placeholder);
+  } else {
+    data.timeline.slice(-HISTORY_POINTS).forEach((segment) => {
+      const dot = document.createElement("span");
+      dot.className = `timeline-dot ${segment.className}`;
+      dot.title = segment.tooltip;
+      timeline.appendChild(dot);
+    });
+  }
+  section.appendChild(timeline);
+
+  return section;
+}
+
+function buildConnectivityData(node, rangeStart, rangeEnd) {
+  const historyRaw = Array.isArray(node.connectivity_history)
+    ? node.connectivity_history
+    : [];
+  const latest = node.connectivity || null;
+  if (!historyRaw.length && !latest) {
+    return null;
+  }
+
+  const history = historyRaw
+    .map((entry) => {
+      const timestamp = entry?.checked_at || entry?.timestamp;
+      if (!timestamp) {
+        return null;
+      }
+      const iso = new Date(timestamp).toISOString();
+      if (Number.isNaN(new Date(iso).getTime())) {
+        return null;
+      }
+      const ok = Boolean(entry.ok);
+      const state = ok ? "online" : entry.error ? "offline" : "unknown";
+      return {
+        id: "connectivity",
+        name: "Connectivity",
+        ok,
+        state,
+        error: entry.error,
+        latency_ms: entry.latency_ms,
+        timestamp: iso,
+      };
+    })
+    .filter(Boolean);
+
+  if (latest?.checked_at) {
+    const isoLatest = new Date(latest.checked_at).toISOString();
+    if (!Number.isNaN(new Date(isoLatest).getTime())) {
+      const exists = history.some((item) => item.timestamp === isoLatest);
+      if (!exists) {
+        history.push({
+          id: "connectivity",
+          name: "Connectivity",
+          ok: Boolean(latest.ok),
+          state: latest.ok ? "online" : latest.error ? "offline" : "unknown",
+          error: latest.error,
+          latency_ms: latest.latency_ms,
+          timestamp: isoLatest,
+        });
+      }
+    }
+  }
+
+  if (!history.length) {
+    return null;
+  }
+
+  history.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  let windowStart = rangeStart instanceof Date ? rangeStart : null;
+  let windowEnd = rangeEnd instanceof Date ? rangeEnd : null;
+  if (
+    !(windowStart instanceof Date) ||
+    Number.isNaN(windowStart?.getTime()) ||
+    !(windowEnd instanceof Date) ||
+    Number.isNaN(windowEnd?.getTime())
+  ) {
+    windowEnd = new Date();
+    windowStart = new Date(windowEnd.getTime() - 24 * 60 * 60 * 1000);
+  }
+
+  const intervalMs = getConnectivityIntervalMs(node, history);
+  const filledHistory = fillMissingHistory(
+    history,
+    intervalMs,
+    windowStart,
+    windowEnd,
+    "connectivity",
+    "Connectivity",
+  );
+
+  const timeline = buildTimelineSegments(
+    filledHistory,
+    windowStart,
+    windowEnd,
+    HISTORY_POINTS,
+  );
+  const stats = computeConnectivityStats(filledHistory);
+  if (stats) {
+    logDebug("Connectivity stats", stats);
+  }
+  const summary = formatConnectivitySummary(stats);
+  if (!timeline.length && (!stats || !stats.total)) {
+    return null;
+  }
+
+  const latestChip = resolveStateChip(
+    latest
+      ? {
+          ok: Boolean(latest.ok),
+          state: latest.ok ? "online" : latest.error ? "offline" : "unknown",
+        }
+      : { ok: false, state: "missing" },
+  );
+  const latencyLabel = formatConnectivityLatency(latest);
+  const rangeLabel =
+    windowStart && windowEnd
+      ? formatRangeDetail(windowStart, windowEnd)
+      : RANGE_LABELS[currentRange] || "Selected range";
+
+  return {
+    timeline,
+    summary,
+    stats,
+    rangeLabel,
+    latestChip,
+    latestLatency: latencyLabel,
+  };
+}
+
+function computeConnectivityStats(history) {
+  if (!Array.isArray(history) || !history.length) {
+    return null;
+  }
+  let ok = 0;
+  let down = 0;
+  let missing = 0;
+  history.forEach((entry) => {
+    if (entry.synthetic && entry.state === "missing") {
+      missing += 1;
+      return;
+    }
+    if (entry.ok) {
+      ok += 1;
+      return;
+    }
+    down += 1;
+  });
+  const total = ok + down + missing;
+  const uptime = total > 0 ? (ok / total) * 100 : NaN;
+  return {
+    total,
+    ok,
+    down,
+    missing,
+    uptime: Number.isFinite(uptime) ? uptime : null,
+  };
+}
+
+function formatConnectivitySummary(stats) {
+  if (!stats || !stats.total) {
+    return "No connectivity data.";
+  }
+  const parts = [];
+  if (Number.isFinite(stats.uptime)) {
+    parts.push(`${stats.uptime.toFixed(2)}% online`);
+  }
+  parts.push(`${stats.ok} ok`);
+  if (stats.down) {
+    parts.push(`${stats.down} fail`);
+  }
+  if (stats.missing) {
+    parts.push(`${stats.missing} missing`);
+  }
+  return parts.join(" · ");
+}
+
+function getConnectivityIntervalMs(node, history) {
+  let intervalMs = estimateIntervalFromHistory(history);
+  if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
+    const configured = Number(node?.node?.connectivity_interval_seconds);
+    if (Number.isFinite(configured) && configured > 0) {
+      intervalMs = configured * 1000;
+    }
+  }
+  if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
+    intervalMs = 60_000;
+  }
+  return intervalMs;
+}
+
+function formatConnectivityLatency(sample) {
+  if (!sample) {
+    return "";
+  }
+  if (sample.ok && Number.isFinite(sample.latency_ms)) {
+    return `${sample.latency_ms} ms`;
+  }
+  if (!sample.ok && sample.error) {
+    return sample.error;
+  }
+  if (Number.isFinite(sample.latency_ms)) {
+    return `${sample.latency_ms} ms`;
+  }
+  if (sample.checked_at) {
+    return formatTimestamp(new Date(sample.checked_at));
+  }
+  return "";
 }
 
 function buildServiceData(node, rangeStart, rangeEnd) {

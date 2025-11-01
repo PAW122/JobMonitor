@@ -46,10 +46,16 @@ func main() {
 	connMon.Start()
 	defer connMon.Stop()
 
+	connectivityInterval := 0
+	if cfg.MonitorDNS.Enabled {
+		connectivityInterval = cfg.MonitorDNS.IntervalSeconds
+	}
+
 	node := cluster.Node{
-		ID:              cfg.NodeID,
-		Name:            cfg.NodeName,
-		IntervalMinutes: cfg.IntervalMinutes,
+		ID:                          cfg.NodeID,
+		Name:                        cfg.NodeName,
+		IntervalMinutes:             cfg.IntervalMinutes,
+		ConnectivityIntervalSeconds: connectivityInterval,
 	}
 	clusterSvc := cluster.NewService(node, store, cfg, cfg.Targets, connMon)
 	clusterSvc.Start()

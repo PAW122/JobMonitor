@@ -18,8 +18,9 @@ import (
 )
 
 const (
-	requestTimeout = 10 * time.Second
-	maxWindow      = 30 * 24 * time.Hour
+	requestTimeout         = 10 * time.Second
+	maxWindow              = 30 * 24 * time.Hour
+	connectivityHistoryCap = 5000
 )
 
 // Service aggregates local storage with peer snapshots.
@@ -164,20 +165,23 @@ func (s *Service) localSnapshot(start, end time.Time) PeerSnapshot {
 			connectivity = &clone
 		}
 	}
+	connectivityHistory := s.connectivityHistory(start, end)
 
 	return PeerSnapshot{
 		Node: Node{
-			ID:              s.node.ID,
-			Name:            s.node.Name,
-			IntervalMinutes: int(s.interval / time.Minute),
+			ID:                          s.node.ID,
+			Name:                        s.node.Name,
+			IntervalMinutes:             int(s.interval / time.Minute),
+			ConnectivityIntervalSeconds: s.node.ConnectivityIntervalSeconds,
 		},
-		Status:       status,
-		Connectivity: connectivity,
-		History:      history,
-		Services:     services,
-		Targets:      s.targets,
-		UpdatedAt:    time.Now().UTC(),
-		Source:       "local",
+		Status:              status,
+		Connectivity:        connectivity,
+		ConnectivityHistory: connectivityHistory,
+		History:             history,
+		Services:            services,
+		Targets:             s.targets,
+		UpdatedAt:           time.Now().UTC(),
+		Source:              "local",
 	}
 }
 
@@ -192,17 +196,19 @@ func (s *Service) materialisePeerSnapshot(snapshot PeerSnapshot, start, end time
 		endpoint = start
 	}
 	services := metrics.ComputeServiceUptime(history, start, endpoint, interval, snapshot.Targets)
+	connectivityHistory := filterConnectivityHistory(snapshot.ConnectivityHistory, start, end)
 
 	return PeerSnapshot{
-		Node:         snapshot.Node,
-		Status:       snapshot.Status,
-		Connectivity: snapshot.Connectivity,
-		History:      history,
-		Services:     services,
-		Targets:      snapshot.Targets,
-		UpdatedAt:    snapshot.UpdatedAt,
-		Error:        snapshot.Error,
-		Source:       snapshot.Source,
+		Node:                snapshot.Node,
+		Status:              snapshot.Status,
+		Connectivity:        snapshot.Connectivity,
+		ConnectivityHistory: connectivityHistory,
+		History:             history,
+		Services:            services,
+		Targets:             snapshot.Targets,
+		UpdatedAt:           snapshot.UpdatedAt,
+		Error:               snapshot.Error,
+		Source:              snapshot.Source,
 	}
 }
 
@@ -250,19 +256,40 @@ func (s *Service) fetchPeer(peer config.Peer) error {
 	s.mu.Lock()
 	s.peersData[peer.ID] = PeerSnapshot{
 		Node: Node{
-			ID:              peer.ID,
-			Name:            resolveName(peer.Name, statusResp.Node.Name, peer.ID),
-			IntervalMinutes: statusResp.Node.IntervalMinutes,
+			ID:                          peer.ID,
+			Name:                        resolveName(peer.Name, statusResp.Node.Name, peer.ID),
+			IntervalMinutes:             statusResp.Node.IntervalMinutes,
+			ConnectivityIntervalSeconds: statusResp.Node.ConnectivityIntervalSeconds,
 		},
-		Status:       statusResp.Status,
-		Connectivity: statusResp.Connectivity,
-		History:      capHistory(historyResp.History, s.historyCap),
-		Targets:      targets,
-		UpdatedAt:    time.Now().UTC(),
-		Source:       "peer",
+		Status:              statusResp.Status,
+		Connectivity:        statusResp.Connectivity,
+		ConnectivityHistory: historyResp.Connectivity,
+		History:             capHistory(historyResp.History, s.historyCap),
+		Targets:             targets,
+		UpdatedAt:           time.Now().UTC(),
+		Source:              "peer",
 	}
 	s.mu.Unlock()
 	return nil
+}
+
+func (s *Service) connectivityHistory(start, end time.Time) []models.ConnectivityStatus {
+	if s.connectivity == nil {
+		return nil
+	}
+	cutoff := start
+	if cutoff.IsZero() {
+		cutoff = time.Now().Add(-48 * time.Hour)
+	}
+	history := s.connectivity.HistorySince(cutoff)
+	if len(history) == 0 {
+		return nil
+	}
+	filtered := filterConnectivityHistory(history, start, end)
+	if len(filtered) > connectivityHistoryCap {
+		filtered = filtered[len(filtered)-connectivityHistoryCap:]
+	}
+	return filtered
 }
 
 func (s *Service) getJSON(url, apiKey string, dest any) error {
@@ -300,6 +327,24 @@ func filterHistory(entries []models.StatusEntry, start, end time.Time) []models.
 			continue
 		}
 		out = append(out, entry)
+	}
+	return out
+}
+
+func filterConnectivityHistory(entries []models.ConnectivityStatus, start, end time.Time) []models.ConnectivityStatus {
+	if len(entries) == 0 {
+		return nil
+	}
+	out := make([]models.ConnectivityStatus, 0, len(entries))
+	for _, sample := range entries {
+		ts := sample.CheckedAt
+		if !start.IsZero() && ts.Before(start) {
+			continue
+		}
+		if !end.IsZero() && ts.After(end) {
+			continue
+		}
+		out = append(out, sample)
 	}
 	return out
 }

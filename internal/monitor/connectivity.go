@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"net"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -14,11 +15,13 @@ import (
 type ConnectivitySource interface {
 	Latest() (models.ConnectivityStatus, bool)
 	History() []models.ConnectivityStatus
+	HistorySince(time.Time) []models.ConnectivityStatus
 }
 
 // ConnectivityMonitor periodically probes connectivity to a DNS endpoint.
 type ConnectivityMonitor struct {
 	cfg        config.MonitorDNS
+	interval   time.Duration
 	maxHistory int
 
 	mu      sync.RWMutex
@@ -31,9 +34,31 @@ type ConnectivityMonitor struct {
 
 // NewConnectivityMonitor configures a new connectivity monitor.
 func NewConnectivityMonitor(cfg config.MonitorDNS) *ConnectivityMonitor {
+	interval := time.Duration(cfg.IntervalSeconds) * time.Second
+	if interval <= 0 {
+		interval = 60 * time.Second
+	}
+
+	historyCap := 2048
+	if cfg.Enabled {
+		slots := int((30 * 24 * time.Hour) / interval)
+		if slots < 0 {
+			slots = 0
+		}
+		slots += 128 // small buffer
+		if slots > historyCap {
+			historyCap = slots
+		}
+		const maxCap = 100000
+		if historyCap > maxCap {
+			historyCap = maxCap
+		}
+	}
+
 	return &ConnectivityMonitor{
 		cfg:        cfg,
-		maxHistory: 512,
+		interval:   interval,
+		maxHistory: historyCap,
 		stopCh:     make(chan struct{}),
 		doneCh:     make(chan struct{}),
 	}
@@ -83,13 +108,36 @@ func (m *ConnectivityMonitor) History() []models.ConnectivityStatus {
 	return out
 }
 
+// HistorySince returns samples whose timestamp is >= cutoff.
+func (m *ConnectivityMonitor) HistorySince(cutoff time.Time) []models.ConnectivityStatus {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if len(m.history) == 0 {
+		return nil
+	}
+
+	if cutoff.IsZero() {
+		out := make([]models.ConnectivityStatus, len(m.history))
+		copy(out, m.history)
+		return out
+	}
+
+	idx := sort.Search(len(m.history), func(i int) bool {
+		return !m.history[i].CheckedAt.Before(cutoff)
+	})
+	if idx >= len(m.history) {
+		return nil
+	}
+	out := make([]models.ConnectivityStatus, len(m.history)-idx)
+	copy(out, m.history[idx:])
+	return out
+}
+
 func (m *ConnectivityMonitor) run() {
 	defer close(m.doneCh)
 
-	interval := time.Duration(m.cfg.IntervalSeconds) * time.Second
-	if interval <= 0 {
-		interval = 60 * time.Second
-	}
+	interval := m.interval
 	timeout := time.Duration(m.cfg.TimeoutSeconds) * time.Second
 	if timeout <= 0 {
 		timeout = 4 * time.Second

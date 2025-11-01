@@ -166,6 +166,58 @@ main {
   font-size: 0.95rem;
 }
 
+.connectivity-section {
+  margin-top: 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.connectivity-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.connectivity-head-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.section-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #f1f5f9;
+}
+
+.connectivity-summary {
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.connectivity-head-right {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.connectivity-latency {
+  font-size: 0.85rem;
+  color: #93c5fd;
+}
+
+.connectivity-timeline {
+  gap: 3px;
+}
+
 .service-list {
   display: flex;
   flex-direction: column;

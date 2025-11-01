@@ -33,6 +33,8 @@ type Server struct {
 	historyLimit   int
 }
 
+const connectivityHistoryCap = 5000
+
 // New creates a configured HTTP server for the monitor.
 func New(
 	addr string,
@@ -69,6 +71,9 @@ func New(
 		historyLimit:   historyLimit,
 	}
 	s.node.IntervalMinutes = int(interval / time.Minute)
+	if node.ConnectivityIntervalSeconds > 0 {
+		s.node.ConnectivityIntervalSeconds = node.ConnectivityIntervalSeconds
+	}
 	s.registerRoutes(mux)
 	return s
 }
@@ -170,13 +175,18 @@ func (s *Server) handleNodeHistory(w http.ResponseWriter, r *http.Request) {
 	if limit := parseLimit(r, s.historyLimit); limit > 0 && len(history) > limit {
 		history = history[len(history)-limit:]
 	}
+	connectivity := s.connectivityHistory(window.start, window.end)
+	if limit := parseLimit(r, connectivityHistoryCap); limit > 0 && len(connectivity) > limit {
+		connectivity = connectivity[len(connectivity)-limit:]
+	}
 	resp := cluster.NodeHistoryResponse{
-		Node:        s.node,
-		History:     history,
-		GeneratedAt: time.Now().UTC(),
-		Range:       window.key,
-		RangeStart:  window.start,
-		RangeEnd:    window.end,
+		Node:         s.node,
+		History:      history,
+		Connectivity: connectivity,
+		GeneratedAt:  time.Now().UTC(),
+		Range:        window.key,
+		RangeStart:   window.start,
+		RangeEnd:     window.end,
 	}
 	resp.Node.IntervalMinutes = int(s.interval / time.Minute)
 	writeJSON(w, http.StatusOK, resp)
@@ -227,15 +237,17 @@ func (s *Server) localPeerSnapshot(start, end time.Time) cluster.PeerSnapshot {
 	if sample := s.latestConnectivity(); sample != nil {
 		connectivity = sample
 	}
+	connectivityHistory := s.connectivityHistory(start, end)
 	return cluster.PeerSnapshot{
-		Node:         s.node,
-		Status:       status,
-		Connectivity: connectivity,
-		History:      history,
-		Services:     services,
-		Targets:      s.targets,
-		UpdatedAt:    time.Now().UTC(),
-		Source:       "local",
+		Node:                s.node,
+		Status:              status,
+		Connectivity:        connectivity,
+		ConnectivityHistory: connectivityHistory,
+		History:             history,
+		Services:            services,
+		Targets:             s.targets,
+		UpdatedAt:           time.Now().UTC(),
+		Source:              "local",
 	}
 }
 
@@ -314,4 +326,33 @@ func (s *Server) latestConnectivity() *models.ConnectivityStatus {
 	}
 	clone := sample
 	return &clone
+}
+
+func (s *Server) connectivityHistory(start, end time.Time) []models.ConnectivityStatus {
+	if s.connectivity == nil {
+		return nil
+	}
+	cutoff := start
+	if cutoff.IsZero() {
+		cutoff = time.Now().Add(-48 * time.Hour)
+	}
+	history := s.connectivity.HistorySince(cutoff)
+	if len(history) == 0 {
+		return nil
+	}
+	filtered := make([]models.ConnectivityStatus, 0, len(history))
+	for _, sample := range history {
+		ts := sample.CheckedAt
+		if !start.IsZero() && ts.Before(start) {
+			continue
+		}
+		if !end.IsZero() && ts.After(end) {
+			continue
+		}
+		filtered = append(filtered, sample)
+	}
+	if len(filtered) > connectivityHistoryCap {
+		filtered = filtered[len(filtered)-connectivityHistoryCap:]
+	}
+	return filtered
 }
