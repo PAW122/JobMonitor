@@ -188,9 +188,6 @@ function renderNodeCard(node, rangeStart, rangeEnd) {
       ),
     );
   }
-  if (node.connectivity) {
-    meta.appendChild(createConnectivityBadge(node.connectivity));
-  }
   card.appendChild(meta);
 
   const connectivityData = buildConnectivityData(node, rangeStart, rangeEnd);
