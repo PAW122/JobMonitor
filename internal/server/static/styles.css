@@ -417,6 +417,52 @@ main {
   color: #fca5a5;
 }
 
+.debug-panel {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.debug-panel .panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+.debug-log {
+  margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #cbd5f5;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 8px;
+  padding: 0.75rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.debug-log::-webkit-scrollbar {
+  width: 6px;
+}
+
+.debug-log::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 999px;
+}
+
+.ghost-button--compact {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+}
+
 .panel-head {
   display: flex;
   justify-content: space-between;

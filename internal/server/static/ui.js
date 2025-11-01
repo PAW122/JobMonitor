@@ -6,6 +6,9 @@ const incidentPanel = document.querySelector("#incident-panel");
 const incidentList = document.querySelector("#incident-list");
 const incidentMeta = document.querySelector("#incident-meta");
 const rangeButtons = document.querySelectorAll(".range-button");
+const debugPanel = document.querySelector("#debug-panel");
+const debugLogEl = document.querySelector("#debug-log");
+const debugClearBtn = document.querySelector("#debug-clear");
 
 const REFRESH_INTERVAL = 30_000;
 const HISTORY_POINTS = 80;
@@ -13,8 +16,52 @@ const RANGE_LABELS = {
   "24h": "Last 24 hours",
   "30d": "Last 30 days",
 };
+const DEBUG_VERSION = "20251101";
+const DEBUG_LIMIT = 120;
+const debugBuffer = [];
+const debugEnabled = Boolean(debugPanel && debugLogEl);
 
 let currentRange = "24h";
+
+function logDebug(message, data) {
+  if (!debugEnabled) {
+    return;
+  }
+  const timestamp = new Date().toISOString();
+  debugBuffer.push({ timestamp, message, data });
+  while (debugBuffer.length > DEBUG_LIMIT) {
+    debugBuffer.shift();
+  }
+  const lines = debugBuffer.map((entry) => {
+    let payload = "";
+    if (entry.data !== undefined) {
+      try {
+        payload = ` ${JSON.stringify(entry.data, replacerSafe)}`;
+      } catch (err) {
+        payload = ` {"debugError":"${String(err)}"}`;
+      }
+    }
+    return `[${entry.timestamp}] ${entry.message}${payload}`;
+  });
+  debugLogEl.textContent = lines.join("\n") || "No debug events yet.";
+  console.log(`[JobMonitor] ${message}`, data ?? "");
+}
+
+function replacerSafe(_key, value) {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  return value;
+}
+
+if (debugEnabled) {
+  debugLogEl.textContent = "";
+  logDebug("UI boot", { version: DEBUG_VERSION });
+  debugClearBtn?.addEventListener("click", () => {
+    debugBuffer.length = 0;
+    logDebug("Debug log cleared by user");
+  });
+}
 
 rangeButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -22,24 +69,33 @@ rangeButtons.forEach((button) => {
     if (!range || range === currentRange) {
       return;
     }
-    refresh(range).catch((err) => console.error("Range switch failed", err));
+    refresh(range, "range-switch").catch((err) => console.error("Range switch failed", err));
   });
 });
 
 refreshBtn?.addEventListener("click", () => {
   refreshBtn.disabled = true;
-  refresh()
+  refresh(currentRange, "manual-click")
     .catch((err) => console.error("Manual refresh failed", err))
     .finally(() => (refreshBtn.disabled = false));
 });
 
-async function refresh(rangeKey = currentRange) {
+async function refresh(rangeKey = currentRange, reason = "unspecified") {
+  logDebug("Refresh requested", { rangeKey, previousRange: currentRange, reason });
   setActiveRange(rangeKey);
   try {
-    const snapshot = await fetchJSON(`/api/cluster?range=${currentRange}`);
+    const url = `/api/cluster?range=${currentRange}`;
+    logDebug("Fetching snapshot", { url });
+    const snapshot = await fetchJSON(url);
+    logDebug("Snapshot received", {
+      nodes: Array.isArray(snapshot?.nodes) ? snapshot.nodes.length : 0,
+      generated_at: snapshot?.generated_at,
+      range: snapshot?.range || currentRange,
+    });
     renderDashboard(snapshot);
   } catch (err) {
     console.error("Refresh failed", err);
+    logDebug("Refresh failed", { error: err?.message || String(err) });
     showErrorState(err);
   }
 }
@@ -47,6 +103,11 @@ async function refresh(rangeKey = currentRange) {
 function renderDashboard(snapshot) {
   const nodes = snapshot?.nodes || [];
   const generatedAt = snapshot?.generated_at ? new Date(snapshot.generated_at) : null;
+  logDebug("Rendering dashboard", {
+    nodes: nodes.length,
+    generated_at: snapshot?.generated_at,
+    range: snapshot?.range || currentRange,
+  });
   if (snapshot?.range) {
     setActiveRange(snapshot.range);
   }
@@ -595,6 +656,7 @@ function renderIncidents(nodes) {
         });
       });
   });
+  logDebug("Incidents recalculated", { count: incidents.length });
 
   if (!incidents.length) {
     incidentPanel.classList.remove("active");
@@ -673,6 +735,12 @@ function createMetaBadge(label, valueHTML) {
 
 function createConnectivityBadge(connectivity) {
   const state = resolveConnectivityState(connectivity);
+  logDebug("Connectivity sample", {
+    target: connectivity?.target,
+    ok: connectivity?.ok,
+    latency_ms: connectivity?.latency_ms,
+    checked_at: connectivity?.checked_at,
+  });
   const wrapper = document.createElement("span");
   wrapper.className = "meta-badge connectivity";
 
@@ -796,9 +864,11 @@ function showErrorState(err) {
   }</div>`;
 }
 
-refresh();
+refresh(currentRange, "initial-load");
 setInterval(() => {
-  refresh().catch((err) => console.error("Scheduled refresh failed", err));
+  refresh(currentRange, "scheduled").catch((err) =>
+    console.error("Scheduled refresh failed", err),
+  );
 }, REFRESH_INTERVAL);
 
 function setActiveRange(range) {
