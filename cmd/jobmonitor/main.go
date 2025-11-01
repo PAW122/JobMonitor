@@ -42,16 +42,20 @@ func main() {
 	mon.Start()
 	defer mon.Stop()
 
+	connMon := monitor.NewConnectivityMonitor(cfg.MonitorDNS)
+	connMon.Start()
+	defer connMon.Stop()
+
 	node := cluster.Node{
 		ID:              cfg.NodeID,
 		Name:            cfg.NodeName,
 		IntervalMinutes: cfg.IntervalMinutes,
 	}
-	clusterSvc := cluster.NewService(node, store, cfg, cfg.Targets)
+	clusterSvc := cluster.NewService(node, store, cfg, cfg.Targets, connMon)
 	clusterSvc.Start()
 	defer clusterSvc.Stop()
 
-	srv := server.New(*addr, node, store, clusterSvc, cfg.Targets)
+	srv := server.New(*addr, node, store, clusterSvc, cfg.Targets, connMon)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

@@ -6,6 +6,7 @@ JobMonitor is a lightweight Go service that watches selected systemd units, stor
 
 ## Features
 - Periodic `systemctl is-active` checks (with optional `sudo` on a per-target basis).
+- Optional connectivity probe that pings a configurable DNS resolver and surfaces the status on the dashboard.
 - JSON history stored at `.dist/data/status_history.json` (UTC timestamp plus result for every service).
 - REST endpoints for local node data (`/api/node/status`, `/api/node/history`, `/api/node/uptime`) and a combined `/api/cluster`.
 - Modern dark UI at `http://localhost:8080` with cards, sparkline-style timelines, and an incident list. Default view covers the last 24 hours with a one-click toggle for a 30-day history, and missed samples count towards downtime.
@@ -20,6 +21,11 @@ data_directory: .dist/data
 node_id: node-a
 node_name: Server A
 peer_refresh_seconds: 60
+monitor_dns:
+  enabled: true
+  target: 1.1.1.1
+  interval_seconds: 60
+  timeout_seconds: 4
 targets:
   - id: tsunamibot
     name: Tsunami Bot
@@ -40,6 +46,7 @@ Key notes:
 - `node_id` must be unique across the cluster; by default the hostname is used.
 - Set `use_sudo: true` on a target if `systemctl` requires elevated privileges (ensure sudoers is configured to avoid password prompts).
 - Peers are optional; leave the list empty for a single-node setup.
+- Enable the DNS probe by setting `monitor_dns.enabled: true`. The probe opens a TCP connection to the configured resolver (default Cloudflare `1.1.1.1:53`) every `interval_seconds` and displays the latency or error on the dashboard.
 
 ## Running
 ```powershell

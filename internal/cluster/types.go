@@ -22,9 +22,10 @@ type Peer struct {
 
 // NodeStatusResponse describes the payload exposed by /api/node/status.
 type NodeStatusResponse struct {
-	Node        Node                `json:"node"`
-	Status      *models.StatusEntry `json:"status,omitempty"`
-	GeneratedAt time.Time           `json:"generated_at"`
+	Node         Node                       `json:"node"`
+	Status       *models.StatusEntry        `json:"status,omitempty"`
+	Connectivity *models.ConnectivityStatus `json:"connectivity,omitempty"`
+	GeneratedAt  time.Time                  `json:"generated_at"`
 }
 
 // NodeHistoryResponse describes history payload from /api/node/history.
@@ -49,14 +50,15 @@ type NodeUptimeResponse struct {
 
 // PeerSnapshot stores last known data for a peer.
 type PeerSnapshot struct {
-	Node      Node                    `json:"node"`
-	Status    *models.StatusEntry     `json:"status,omitempty"`
-	History   []models.StatusEntry    `json:"history"`
-	Services  []metrics.ServiceUptime `json:"services"`
-	Targets   []models.Target         `json:"targets,omitempty"`
-	UpdatedAt time.Time               `json:"updated_at"`
-	Error     string                  `json:"error,omitempty"`
-	Source    string                  `json:"source"`
+	Node         Node                       `json:"node"`
+	Status       *models.StatusEntry        `json:"status,omitempty"`
+	Connectivity *models.ConnectivityStatus `json:"connectivity,omitempty"`
+	History      []models.StatusEntry       `json:"history"`
+	Services     []metrics.ServiceUptime    `json:"services"`
+	Targets      []models.Target            `json:"targets,omitempty"`
+	UpdatedAt    time.Time                  `json:"updated_at"`
+	Error        string                     `json:"error,omitempty"`
+	Source       string                     `json:"source"`
 }
 
 // ClusterSnapshot is returned by /api/cluster.

@@ -13,6 +13,7 @@ import (
 	"jobmonitor/internal/cluster"
 	"jobmonitor/internal/metrics"
 	"jobmonitor/internal/models"
+	"jobmonitor/internal/monitor"
 	"jobmonitor/internal/storage"
 )
 
@@ -26,13 +27,21 @@ type Server struct {
 	staticFS       fs.FS
 	node           cluster.Node
 	interval       time.Duration
+	connectivity   monitor.ConnectivitySource
 	targets        []models.Target
 	clusterService *cluster.Service
 	historyLimit   int
 }
 
 // New creates a configured HTTP server for the monitor.
-func New(addr string, node cluster.Node, storage *storage.StatusStorage, clusterService *cluster.Service, targets []models.Target) *Server {
+func New(
+	addr string,
+	node cluster.Node,
+	storage *storage.StatusStorage,
+	clusterService *cluster.Service,
+	targets []models.Target,
+	connectivity monitor.ConnectivitySource,
+) *Server {
 	staticFS, err := fs.Sub(embeddedStatic, "static")
 	if err != nil {
 		panic("static assets missing: " + err.Error())
@@ -54,6 +63,7 @@ func New(addr string, node cluster.Node, storage *storage.StatusStorage, cluster
 		staticFS:       staticFS,
 		node:           node,
 		interval:       interval,
+		connectivity:   connectivity,
 		targets:        targets,
 		clusterService: clusterService,
 		historyLimit:   historyLimit,
@@ -142,8 +152,9 @@ func (s *Server) handleUptime(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleNodeStatus(w http.ResponseWriter, _ *http.Request) {
 	entry, ok := s.storage.Latest()
 	resp := cluster.NodeStatusResponse{
-		Node:        s.node,
-		GeneratedAt: time.Now().UTC(),
+		Node:         s.node,
+		GeneratedAt:  time.Now().UTC(),
+		Connectivity: s.latestConnectivity(),
 	}
 	resp.Node.IntervalMinutes = int(s.interval / time.Minute)
 	if ok {
@@ -212,14 +223,19 @@ func (s *Server) localPeerSnapshot(start, end time.Time) cluster.PeerSnapshot {
 		status = &latest
 	}
 	services := metrics.ComputeServiceUptime(history, start, end, s.interval, s.targets)
+	var connectivity *models.ConnectivityStatus
+	if sample := s.latestConnectivity(); sample != nil {
+		connectivity = sample
+	}
 	return cluster.PeerSnapshot{
-		Node:      s.node,
-		Status:    status,
-		History:   history,
-		Services:  services,
-		Targets:   s.targets,
-		UpdatedAt: time.Now().UTC(),
-		Source:    "local",
+		Node:         s.node,
+		Status:       status,
+		Connectivity: connectivity,
+		History:      history,
+		Services:     services,
+		Targets:      s.targets,
+		UpdatedAt:    time.Now().UTC(),
+		Source:       "local",
 	}
 }
 
@@ -286,4 +302,16 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(false)
 	_ = enc.Encode(payload)
+}
+
+func (s *Server) latestConnectivity() *models.ConnectivityStatus {
+	if s.connectivity == nil {
+		return nil
+	}
+	sample, ok := s.connectivity.Latest()
+	if !ok {
+		return nil
+	}
+	clone := sample
+	return &clone
 }

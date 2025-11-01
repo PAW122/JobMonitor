@@ -231,6 +231,43 @@ main {
   gap: 0.35rem;
 }
 
+.meta-badge.connectivity {
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+}
+
+.meta-badge.connectivity span:first-child {
+  color: #cbd5f5;
+  font-weight: 600;
+}
+
+.meta-badge.connectivity .status-ok,
+.meta-badge.connectivity .status-error,
+.meta-badge.connectivity .status-unknown {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+}
+
+.meta-badge.connectivity .status-ok {
+  color: #34d399;
+}
+
+.meta-badge.connectivity .status-error {
+  color: #f87171;
+}
+
+.meta-badge.connectivity .status-unknown {
+  color: #94a3b8;
+}
+
+.meta-badge.connectivity .connectivity-detail {
+  color: #8ea0c2;
+  font-size: 0.85rem;
+}
+
 .state-chip {
   font-size: 0.8rem;
   font-weight: 600;

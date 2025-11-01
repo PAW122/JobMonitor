@@ -127,6 +127,9 @@ function renderNodeCard(node, rangeStart, rangeEnd) {
       ),
     );
   }
+  if (node.connectivity) {
+    meta.appendChild(createConnectivityBadge(node.connectivity));
+  }
   card.appendChild(meta);
 
   const list = document.createElement("div");
@@ -575,6 +578,14 @@ function renderIncidents(nodes) {
         details: node.error,
       });
     }
+    if (node.connectivity && !node.connectivity.ok) {
+      incidents.push({
+        title: `${nodeName} - connectivity`,
+        details:
+          node.connectivity.error ||
+          `No response from ${node.connectivity.target || "probe target"}`,
+      });
+    }
     (node.status?.checks || [])
       .filter((check) => !check.ok)
       .forEach((check) => {
@@ -658,6 +669,77 @@ function createMetaBadge(label, valueHTML) {
   wrapper.className = "meta-badge";
   wrapper.innerHTML = `<span>${label}:</span>${valueHTML}`;
   return wrapper;
+}
+
+function createConnectivityBadge(connectivity) {
+  const state = resolveConnectivityState(connectivity);
+  const wrapper = document.createElement("span");
+  wrapper.className = "meta-badge connectivity";
+
+  const label = document.createElement("span");
+  label.textContent = "Connectivity:";
+  wrapper.appendChild(label);
+
+  const value = document.createElement("span");
+  value.className = state.className;
+  value.textContent = state.label;
+  wrapper.appendChild(value);
+
+  if (state.detail) {
+    const detail = document.createElement("span");
+    detail.className = "connectivity-detail";
+    detail.textContent = state.detail;
+    wrapper.appendChild(detail);
+  }
+
+  if (state.tooltip) {
+    wrapper.title = state.tooltip;
+  }
+
+  return wrapper;
+}
+
+function resolveConnectivityState(connectivity) {
+  if (!connectivity) {
+    return {
+      label: "unknown",
+      className: "status-unknown",
+      detail: "",
+      tooltip: "",
+    };
+  }
+
+  const checkedAt = connectivity.checked_at ? new Date(connectivity.checked_at) : null;
+  const tooltipParts = [];
+  if (checkedAt) {
+    tooltipParts.push(`Checked: ${formatTimestamp(checkedAt)}`);
+  }
+  if (connectivity.error) {
+    tooltipParts.push(`Error: ${connectivity.error}`);
+  }
+
+  let label = "pending";
+  let className = "status-unknown";
+  let detail = "";
+
+  if (connectivity.ok) {
+    label = "online";
+    className = "status-ok";
+    if (Number.isFinite(connectivity.latency_ms)) {
+      detail = `${connectivity.latency_ms} ms`;
+    }
+  } else if (connectivity.error) {
+    label = "offline";
+    className = "status-error";
+    detail = connectivity.error;
+  }
+
+  return {
+    label,
+    className,
+    detail,
+    tooltip: tooltipParts.join("\n"),
+  };
 }
 
 function formatTimestamp(date) {

@@ -17,9 +17,18 @@ type Config struct {
 	DataDirectory   string          `yaml:"data_directory"`
 	NodeID          string          `yaml:"node_id"`
 	NodeName        string          `yaml:"node_name"`
+	MonitorDNS      MonitorDNS      `yaml:"monitor_dns"`
 	Peers           []Peer          `yaml:"peers"`
 	PeerRefreshSec  int             `yaml:"peer_refresh_seconds"`
 	Targets         []models.Target `yaml:"targets"`
+}
+
+// MonitorDNS defines optional connectivity probing against a DNS resolver.
+type MonitorDNS struct {
+	Enabled         bool   `yaml:"enabled"`
+	Target          string `yaml:"target"`
+	IntervalSeconds int    `yaml:"interval_seconds"`
+	TimeoutSeconds  int    `yaml:"timeout_seconds"`
 }
 
 // Peer defines a remote JobMonitor instance to aggregate.
@@ -37,12 +46,18 @@ func DefaultConfig() Config {
 	if hostname == "" {
 		hostname = "jobmonitor-local"
 	}
+	defaultDNS := MonitorDNS{
+		Target:          "1.1.1.1",
+		IntervalSeconds: 60,
+		TimeoutSeconds:  4,
+	}
 
 	return Config{
 		IntervalMinutes: 5,
 		DataDirectory:   filepath.Join(".dist", "data"),
 		NodeID:          hostname,
 		NodeName:        hostname,
+		MonitorDNS:      defaultDNS,
 		PeerRefreshSec:  60,
 		Targets: []models.Target{
 			{
@@ -87,6 +102,15 @@ func Load(path string) (Config, error) {
 	}
 	if cfg.PeerRefreshSec <= 0 {
 		cfg.PeerRefreshSec = 60
+	}
+	if cfg.MonitorDNS.Target == "" {
+		cfg.MonitorDNS.Target = DefaultConfig().MonitorDNS.Target
+	}
+	if cfg.MonitorDNS.IntervalSeconds <= 0 {
+		cfg.MonitorDNS.IntervalSeconds = DefaultConfig().MonitorDNS.IntervalSeconds
+	}
+	if cfg.MonitorDNS.TimeoutSeconds <= 0 {
+		cfg.MonitorDNS.TimeoutSeconds = DefaultConfig().MonitorDNS.TimeoutSeconds
 	}
 	if len(cfg.Targets) == 0 {
 		return Config{}, errors.New("configuration must define at least one target")

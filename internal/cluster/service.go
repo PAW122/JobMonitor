@@ -13,6 +13,7 @@ import (
 	"jobmonitor/internal/config"
 	"jobmonitor/internal/metrics"
 	"jobmonitor/internal/models"
+	"jobmonitor/internal/monitor"
 	"jobmonitor/internal/storage"
 )
 
@@ -23,13 +24,14 @@ const (
 
 // Service aggregates local storage with peer snapshots.
 type Service struct {
-	node       Node
-	storage    *storage.StatusStorage
-	targets    []models.Target
-	interval   time.Duration
-	peers      []config.Peer
-	refresh    time.Duration
-	historyCap int
+	node         Node
+	storage      *storage.StatusStorage
+	targets      []models.Target
+	interval     time.Duration
+	connectivity monitor.ConnectivitySource
+	peers        []config.Peer
+	refresh      time.Duration
+	historyCap   int
 
 	client *http.Client
 
@@ -41,7 +43,13 @@ type Service struct {
 }
 
 // NewService initialises cluster aggregator for a node.
-func NewService(node Node, storage *storage.StatusStorage, cfg config.Config, targets []models.Target) *Service {
+func NewService(
+	node Node,
+	storage *storage.StatusStorage,
+	cfg config.Config,
+	targets []models.Target,
+	connectivity monitor.ConnectivitySource,
+) *Service {
 	refresh := time.Duration(cfg.PeerRefreshSec) * time.Second
 	if refresh < 15*time.Second {
 		refresh = 15 * time.Second
@@ -70,17 +78,18 @@ func NewService(node Node, storage *storage.StatusStorage, cfg config.Config, ta
 
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Service{
-		node:       node,
-		storage:    storage,
-		targets:    targets,
-		interval:   interval,
-		peers:      cfg.Peers,
-		refresh:    refresh,
-		historyCap: historyCap,
-		client:     &http.Client{Transport: transport, Timeout: requestTimeout},
-		peersData:  make(map[string]PeerSnapshot),
-		ctx:        ctx,
-		cancel:     cancel,
+		node:         node,
+		storage:      storage,
+		targets:      targets,
+		interval:     interval,
+		connectivity: connectivity,
+		peers:        cfg.Peers,
+		refresh:      refresh,
+		historyCap:   historyCap,
+		client:       &http.Client{Transport: transport, Timeout: requestTimeout},
+		peersData:    make(map[string]PeerSnapshot),
+		ctx:          ctx,
+		cancel:       cancel,
 	}
 }
 
@@ -148,6 +157,13 @@ func (s *Service) localSnapshot(start, end time.Time) PeerSnapshot {
 	}
 
 	services := metrics.ComputeServiceUptime(history, start, end, s.interval, s.targets)
+	var connectivity *models.ConnectivityStatus
+	if s.connectivity != nil {
+		if sample, ok := s.connectivity.Latest(); ok {
+			clone := sample
+			connectivity = &clone
+		}
+	}
 
 	return PeerSnapshot{
 		Node: Node{
@@ -155,12 +171,13 @@ func (s *Service) localSnapshot(start, end time.Time) PeerSnapshot {
 			Name:            s.node.Name,
 			IntervalMinutes: int(s.interval / time.Minute),
 		},
-		Status:    status,
-		History:   history,
-		Services:  services,
-		Targets:   s.targets,
-		UpdatedAt: time.Now().UTC(),
-		Source:    "local",
+		Status:       status,
+		Connectivity: connectivity,
+		History:      history,
+		Services:     services,
+		Targets:      s.targets,
+		UpdatedAt:    time.Now().UTC(),
+		Source:       "local",
 	}
 }
 
@@ -177,14 +194,15 @@ func (s *Service) materialisePeerSnapshot(snapshot PeerSnapshot, start, end time
 	services := metrics.ComputeServiceUptime(history, start, endpoint, interval, snapshot.Targets)
 
 	return PeerSnapshot{
-		Node:      snapshot.Node,
-		Status:    snapshot.Status,
-		History:   history,
-		Services:  services,
-		Targets:   snapshot.Targets,
-		UpdatedAt: snapshot.UpdatedAt,
-		Error:     snapshot.Error,
-		Source:    snapshot.Source,
+		Node:         snapshot.Node,
+		Status:       snapshot.Status,
+		Connectivity: snapshot.Connectivity,
+		History:      history,
+		Services:     services,
+		Targets:      snapshot.Targets,
+		UpdatedAt:    snapshot.UpdatedAt,
+		Error:        snapshot.Error,
+		Source:       snapshot.Source,
 	}
 }
 
@@ -236,11 +254,12 @@ func (s *Service) fetchPeer(peer config.Peer) error {
 			Name:            resolveName(peer.Name, statusResp.Node.Name, peer.ID),
 			IntervalMinutes: statusResp.Node.IntervalMinutes,
 		},
-		Status:    statusResp.Status,
-		History:   capHistory(historyResp.History, s.historyCap),
-		Targets:   targets,
-		UpdatedAt: time.Now().UTC(),
-		Source:    "peer",
+		Status:       statusResp.Status,
+		Connectivity: statusResp.Connectivity,
+		History:      capHistory(historyResp.History, s.historyCap),
+		Targets:      targets,
+		UpdatedAt:    time.Now().UTC(),
+		Source:       "peer",
 	}
 	s.mu.Unlock()
 	return nil

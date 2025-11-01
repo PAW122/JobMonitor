@@ -3,6 +3,11 @@ data_directory: .dist/data
 node_id: node-a
 node_name: Server A
 peer_refresh_seconds: 60
+monitor_dns:
+  enabled: true
+  target: 1.1.1.1
+  interval_seconds: 60
+  timeout_seconds: 4
 targets:
   - id: tsunamibot
     name: Tsunami Bot
