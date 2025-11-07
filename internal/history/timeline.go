@@ -244,3 +244,51 @@ func isWarningState(state string) bool {
 	_, ok := warningStates[state]
 	return ok
 }
+
+// BuildConnectivityTimeline reduces connectivity samples into compact timeline points.
+func BuildConnectivityTimeline(entries []models.ConnectivityStatus, start, end time.Time, points int) []models.TimelinePoint {
+	samples := make([]sample, 0, len(entries))
+	for _, entry := range entries {
+		ts := entry.CheckedAt
+		if ts.IsZero() {
+			continue
+		}
+		state := "unknown"
+		switch {
+		case entry.OK:
+			state = "online"
+		case entry.Error != "":
+			state = "offline"
+		}
+		samples = append(samples, sample{
+			Timestamp: ts,
+			OK:        entry.OK,
+			State:     state,
+			Error:     entry.Error,
+		})
+	}
+	if len(samples) > 0 {
+		sort.Slice(samples, func(i, j int) bool {
+			return samples[i].Timestamp.Before(samples[j].Timestamp)
+		})
+		first := samples[0]
+		if !start.IsZero() && start.Before(first.Timestamp) {
+			samples = append(samples, sample{
+				Timestamp: start,
+				OK:        first.OK,
+				State:     first.State,
+				Error:     first.Error,
+			})
+		}
+		last := samples[len(samples)-1]
+		if !end.IsZero() && end.After(last.Timestamp) {
+			samples = append(samples, sample{
+				Timestamp: end,
+				OK:        last.OK,
+				State:     last.State,
+				Error:     last.Error,
+			})
+		}
+	}
+	return buildTimeline(samples, start, end, points)
+}

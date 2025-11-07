@@ -186,18 +186,21 @@ func (s *Server) handleNodeHistory(w http.ResponseWriter, r *http.Request) {
 	if limit := parseLimit(r, s.historyLimit); limit > 0 && len(history) > limit {
 		history = history[len(history)-limit:]
 	}
-	connectivity := s.connectivityHistory(window.start, window.end)
+	connectivityFull := s.connectivityHistory(window.start, window.end)
+	connectivityTimeline := timeline.BuildConnectivityTimeline(connectivityFull, window.start, window.end, timeline.DefaultTimelinePoints)
+	connectivity := connectivityFull
 	if limit := parseLimit(r, connectivityHistoryCap); limit > 0 && len(connectivity) > limit {
 		connectivity = connectivity[len(connectivity)-limit:]
 	}
 	resp := cluster.NodeHistoryResponse{
-		Node:         s.node,
-		History:      history,
-		Connectivity: connectivity,
-		GeneratedAt:  time.Now().UTC(),
-		Range:        window.key,
-		RangeStart:   window.start,
-		RangeEnd:     window.end,
+		Node:                 s.node,
+		History:              history,
+		Connectivity:         connectivity,
+		ConnectivityTimeline: connectivityTimeline,
+		GeneratedAt:          time.Now().UTC(),
+		Range:                window.key,
+		RangeStart:           window.start,
+		RangeEnd:             window.end,
 	}
 	resp.Node.IntervalMinutes = int(s.interval / time.Minute)
 	writeJSON(w, http.StatusOK, resp)
@@ -251,17 +254,19 @@ func (s *Server) localPeerSnapshot(win window) cluster.PeerSnapshot {
 		connectivity = sample
 	}
 	connectivityHistory := s.connectivityHistory(win.start, win.end)
+	connectivityTimeline := timeline.BuildConnectivityTimeline(connectivityHistory, win.start, win.end, timeline.DefaultTimelinePoints)
 	return cluster.PeerSnapshot{
-		Node:                s.node,
-		Status:              status,
-		Connectivity:        connectivity,
-		ConnectivityHistory: connectivityHistory,
-		History:             nil,
-		ServiceTimelines:    timelines,
-		Services:            services,
-		Targets:             s.targets,
-		UpdatedAt:           time.Now().UTC(),
-		Source:              "local",
+		Node:                 s.node,
+		Status:               status,
+		Connectivity:         connectivity,
+		ConnectivityHistory:  connectivityHistory,
+		ConnectivityTimeline: connectivityTimeline,
+		History:              nil,
+		ServiceTimelines:     timelines,
+		Services:             services,
+		Targets:              s.targets,
+		UpdatedAt:            time.Now().UTC(),
+		Source:               "local",
 	}
 }
 

@@ -174,6 +174,7 @@ func (s *Service) localSnapshot(start, end time.Time) PeerSnapshot {
 		}
 	}
 	connectivityHistory := s.connectivityHistory(start, end)
+	connectivityTimeline := timeline.BuildConnectivityTimeline(connectivityHistory, start, end, timeline.DefaultTimelinePoints)
 
 	return PeerSnapshot{
 		Node: Node{
@@ -182,15 +183,16 @@ func (s *Service) localSnapshot(start, end time.Time) PeerSnapshot {
 			IntervalMinutes:             int(s.interval / time.Minute),
 			ConnectivityIntervalSeconds: s.node.ConnectivityIntervalSeconds,
 		},
-		Status:              status,
-		Connectivity:        connectivity,
-		ConnectivityHistory: connectivityHistory,
-		History:             nil,
-		ServiceTimelines:    timelines,
-		Services:            services,
-		Targets:             s.targets,
-		UpdatedAt:           time.Now().UTC(),
-		Source:              "local",
+		Status:               status,
+		Connectivity:         connectivity,
+		ConnectivityHistory:  connectivityHistory,
+		ConnectivityTimeline: connectivityTimeline,
+		History:              nil,
+		ServiceTimelines:     timelines,
+		Services:             services,
+		Targets:              s.targets,
+		UpdatedAt:            time.Now().UTC(),
+		Source:               "local",
 	}
 }
 
@@ -206,6 +208,7 @@ func (s *Service) materialisePeerSnapshot(snapshot PeerSnapshot, start, end time
 	}
 	services := metrics.ComputeServiceUptime(history, start, endpoint, interval, snapshot.Targets)
 	connectivityHistory := filterConnectivityHistory(snapshot.ConnectivityHistory, start, end)
+	connectivityTimeline := timeline.BuildConnectivityTimeline(connectivityHistory, start, end, timeline.DefaultTimelinePoints)
 
 	timelines := timeline.BuildServiceTimelines(
 		history,
@@ -216,17 +219,18 @@ func (s *Service) materialisePeerSnapshot(snapshot PeerSnapshot, start, end time
 		timeline.DefaultTimelinePoints,
 	)
 	return PeerSnapshot{
-		Node:                snapshot.Node,
-		Status:              snapshot.Status,
-		Connectivity:        snapshot.Connectivity,
-		ConnectivityHistory: connectivityHistory,
-		History:             nil,
-		ServiceTimelines:    timelines,
-		Services:            services,
-		Targets:             snapshot.Targets,
-		UpdatedAt:           snapshot.UpdatedAt,
-		Error:               snapshot.Error,
-		Source:              snapshot.Source,
+		Node:                 snapshot.Node,
+		Status:               snapshot.Status,
+		Connectivity:         snapshot.Connectivity,
+		ConnectivityHistory:  connectivityHistory,
+		ConnectivityTimeline: connectivityTimeline,
+		History:              nil,
+		ServiceTimelines:     timelines,
+		Services:             services,
+		Targets:              snapshot.Targets,
+		UpdatedAt:            snapshot.UpdatedAt,
+		Error:                snapshot.Error,
+		Source:               snapshot.Source,
 	}
 }
 
@@ -279,13 +283,14 @@ func (s *Service) fetchPeer(peer config.Peer) error {
 			IntervalMinutes:             statusResp.Node.IntervalMinutes,
 			ConnectivityIntervalSeconds: statusResp.Node.ConnectivityIntervalSeconds,
 		},
-		Status:              statusResp.Status,
-		Connectivity:        statusResp.Connectivity,
-		ConnectivityHistory: historyResp.Connectivity,
-		History:             capHistory(historyResp.History, s.historyCap),
-		Targets:             targets,
-		UpdatedAt:           time.Now().UTC(),
-		Source:              "peer",
+		Status:               statusResp.Status,
+		Connectivity:         statusResp.Connectivity,
+		ConnectivityHistory:  historyResp.Connectivity,
+		ConnectivityTimeline: historyResp.ConnectivityTimeline,
+		History:              capHistory(historyResp.History, s.historyCap),
+		Targets:              targets,
+		UpdatedAt:            time.Now().UTC(),
+		Source:               "peer",
 	}
 	s.mu.Unlock()
 	return nil

@@ -1,0 +1,2275 @@
+{
+  "generated_at": "2025-11-07T21:41:01.586140334Z",
+  "range": "24h",
+  "range_start": "2025-11-06T21:41:01.586137909Z",
+  "range_end": "2025-11-07T21:41:01.586137909Z",
+  "nodes": [
+    {
+      "node": {
+        "id": "Zima2",
+        "name": "Zima2",
+        "interval_minutes": 5,
+        "connectivity_interval_seconds": 60
+      },
+      "status": {
+        "timestamp": "2025-11-07T21:40:55.115406133Z",
+        "checks": [
+          {
+            "id": "jellyfin",
+            "name": "Jellyfin",
+            "ok": true,
+            "state": "active"
+          },
+          { "id": "maria_db", "name": "MariaDB", "ok": true, "state": "active" }
+        ]
+      },
+      "connectivity": {
+        "target": "1.1.1.1",
+        "ok": true,
+        "latency_ms": 9,
+        "checked_at": "2025-11-07T21:40:55.112149215Z"
+      },
+      "connectivity_history": [
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 8,
+          "checked_at": "2025-11-07T21:25:55.101851763Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 8,
+          "checked_at": "2025-11-07T21:26:55.111829952Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 7,
+          "checked_at": "2025-11-07T21:27:55.109644606Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 7,
+          "checked_at": "2025-11-07T21:28:55.109541995Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 8,
+          "checked_at": "2025-11-07T21:29:55.110590983Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 9,
+          "checked_at": "2025-11-07T21:30:55.112532932Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 9,
+          "checked_at": "2025-11-07T21:31:55.111507811Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 8,
+          "checked_at": "2025-11-07T21:32:55.111424784Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 12,
+          "checked_at": "2025-11-07T21:33:55.114777893Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 8,
+          "checked_at": "2025-11-07T21:34:55.111796689Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 7,
+          "checked_at": "2025-11-07T21:35:55.109073433Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 9,
+          "checked_at": "2025-11-07T21:36:55.11215686Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 8,
+          "checked_at": "2025-11-07T21:37:55.110369293Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 7,
+          "checked_at": "2025-11-07T21:38:55.110374133Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 9,
+          "checked_at": "2025-11-07T21:39:55.111725707Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 9,
+          "checked_at": "2025-11-07T21:40:55.112149215Z"
+        }
+      ],
+      "service_timelines": [
+        {
+          "service_id": "jellyfin",
+          "service_name": "Jellyfin",
+          "timeline": [
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T21:41:01.586137909Z",
+              "end": "2025-11-06T21:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T21:59:01.586137909Z",
+              "end": "2025-11-06T22:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T22:17:01.586137909Z",
+              "end": "2025-11-06T22:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T22:35:01.586137909Z",
+              "end": "2025-11-06T22:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T22:53:01.586137909Z",
+              "end": "2025-11-06T23:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T23:11:01.586137909Z",
+              "end": "2025-11-06T23:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T23:29:01.586137909Z",
+              "end": "2025-11-06T23:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T23:47:01.586137909Z",
+              "end": "2025-11-07T00:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:05:01.586137909Z",
+              "end": "2025-11-07T00:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:23:01.586137909Z",
+              "end": "2025-11-07T00:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:41:01.586137909Z",
+              "end": "2025-11-07T00:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:59:01.586137909Z",
+              "end": "2025-11-07T01:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T01:17:01.586137909Z",
+              "end": "2025-11-07T01:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T01:35:01.586137909Z",
+              "end": "2025-11-07T01:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T01:53:01.586137909Z",
+              "end": "2025-11-07T02:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T02:11:01.586137909Z",
+              "end": "2025-11-07T02:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T02:29:01.586137909Z",
+              "end": "2025-11-07T02:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T02:47:01.586137909Z",
+              "end": "2025-11-07T03:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:05:01.586137909Z",
+              "end": "2025-11-07T03:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:23:01.586137909Z",
+              "end": "2025-11-07T03:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:41:01.586137909Z",
+              "end": "2025-11-07T03:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:59:01.586137909Z",
+              "end": "2025-11-07T04:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T04:17:01.586137909Z",
+              "end": "2025-11-07T04:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T04:35:01.586137909Z",
+              "end": "2025-11-07T04:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T04:53:01.586137909Z",
+              "end": "2025-11-07T05:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T05:11:01.586137909Z",
+              "end": "2025-11-07T05:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T05:29:01.586137909Z",
+              "end": "2025-11-07T05:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T05:47:01.586137909Z",
+              "end": "2025-11-07T06:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:05:01.586137909Z",
+              "end": "2025-11-07T06:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:23:01.586137909Z",
+              "end": "2025-11-07T06:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:41:01.586137909Z",
+              "end": "2025-11-07T06:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:59:01.586137909Z",
+              "end": "2025-11-07T07:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T07:17:01.586137909Z",
+              "end": "2025-11-07T07:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T07:35:01.586137909Z",
+              "end": "2025-11-07T07:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T07:53:01.586137909Z",
+              "end": "2025-11-07T08:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T08:11:01.586137909Z",
+              "end": "2025-11-07T08:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T08:29:01.586137909Z",
+              "end": "2025-11-07T08:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T08:47:01.586137909Z",
+              "end": "2025-11-07T09:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:05:01.586137909Z",
+              "end": "2025-11-07T09:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:23:01.586137909Z",
+              "end": "2025-11-07T09:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:41:01.586137909Z",
+              "end": "2025-11-07T09:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:59:01.586137909Z",
+              "end": "2025-11-07T10:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T10:17:01.586137909Z",
+              "end": "2025-11-07T10:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T10:35:01.586137909Z",
+              "end": "2025-11-07T10:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T10:53:01.586137909Z",
+              "end": "2025-11-07T11:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T11:11:01.586137909Z",
+              "end": "2025-11-07T11:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T11:29:01.586137909Z",
+              "end": "2025-11-07T11:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T11:47:01.586137909Z",
+              "end": "2025-11-07T12:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:05:01.586137909Z",
+              "end": "2025-11-07T12:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:23:01.586137909Z",
+              "end": "2025-11-07T12:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:41:01.586137909Z",
+              "end": "2025-11-07T12:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:59:01.586137909Z",
+              "end": "2025-11-07T13:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T13:17:01.586137909Z",
+              "end": "2025-11-07T13:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T13:35:01.586137909Z",
+              "end": "2025-11-07T13:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T13:53:01.586137909Z",
+              "end": "2025-11-07T14:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T14:11:01.586137909Z",
+              "end": "2025-11-07T14:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T14:29:01.586137909Z",
+              "end": "2025-11-07T14:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T14:47:01.586137909Z",
+              "end": "2025-11-07T15:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:05:01.586137909Z",
+              "end": "2025-11-07T15:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:23:01.586137909Z",
+              "end": "2025-11-07T15:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:41:01.586137909Z",
+              "end": "2025-11-07T15:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:59:01.586137909Z",
+              "end": "2025-11-07T16:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T16:17:01.586137909Z",
+              "end": "2025-11-07T16:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T16:35:01.586137909Z",
+              "end": "2025-11-07T16:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T16:53:01.586137909Z",
+              "end": "2025-11-07T17:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T17:11:01.586137909Z",
+              "end": "2025-11-07T17:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T17:29:01.586137909Z",
+              "end": "2025-11-07T17:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T17:47:01.586137909Z",
+              "end": "2025-11-07T18:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:05:01.586137909Z",
+              "end": "2025-11-07T18:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:23:01.586137909Z",
+              "end": "2025-11-07T18:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:41:01.586137909Z",
+              "end": "2025-11-07T18:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:59:01.586137909Z",
+              "end": "2025-11-07T19:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T19:17:01.586137909Z",
+              "end": "2025-11-07T19:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T19:35:01.586137909Z",
+              "end": "2025-11-07T19:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T19:53:01.586137909Z",
+              "end": "2025-11-07T20:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T20:11:01.586137909Z",
+              "end": "2025-11-07T20:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T20:29:01.586137909Z",
+              "end": "2025-11-07T20:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T20:47:01.586137909Z",
+              "end": "2025-11-07T21:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T21:05:01.586137909Z",
+              "end": "2025-11-07T21:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T21:23:01.586137909Z",
+              "end": "2025-11-07T21:41:01.586137909Z"
+            }
+          ]
+        },
+        {
+          "service_id": "maria_db",
+          "service_name": "MariaDB",
+          "timeline": [
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T21:41:01.586137909Z",
+              "end": "2025-11-06T21:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T21:59:01.586137909Z",
+              "end": "2025-11-06T22:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T22:17:01.586137909Z",
+              "end": "2025-11-06T22:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T22:35:01.586137909Z",
+              "end": "2025-11-06T22:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T22:53:01.586137909Z",
+              "end": "2025-11-06T23:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T23:11:01.586137909Z",
+              "end": "2025-11-06T23:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T23:29:01.586137909Z",
+              "end": "2025-11-06T23:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T23:47:01.586137909Z",
+              "end": "2025-11-07T00:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:05:01.586137909Z",
+              "end": "2025-11-07T00:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:23:01.586137909Z",
+              "end": "2025-11-07T00:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:41:01.586137909Z",
+              "end": "2025-11-07T00:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:59:01.586137909Z",
+              "end": "2025-11-07T01:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T01:17:01.586137909Z",
+              "end": "2025-11-07T01:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T01:35:01.586137909Z",
+              "end": "2025-11-07T01:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T01:53:01.586137909Z",
+              "end": "2025-11-07T02:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T02:11:01.586137909Z",
+              "end": "2025-11-07T02:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T02:29:01.586137909Z",
+              "end": "2025-11-07T02:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T02:47:01.586137909Z",
+              "end": "2025-11-07T03:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:05:01.586137909Z",
+              "end": "2025-11-07T03:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:23:01.586137909Z",
+              "end": "2025-11-07T03:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:41:01.586137909Z",
+              "end": "2025-11-07T03:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:59:01.586137909Z",
+              "end": "2025-11-07T04:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T04:17:01.586137909Z",
+              "end": "2025-11-07T04:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T04:35:01.586137909Z",
+              "end": "2025-11-07T04:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T04:53:01.586137909Z",
+              "end": "2025-11-07T05:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T05:11:01.586137909Z",
+              "end": "2025-11-07T05:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T05:29:01.586137909Z",
+              "end": "2025-11-07T05:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T05:47:01.586137909Z",
+              "end": "2025-11-07T06:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:05:01.586137909Z",
+              "end": "2025-11-07T06:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:23:01.586137909Z",
+              "end": "2025-11-07T06:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:41:01.586137909Z",
+              "end": "2025-11-07T06:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:59:01.586137909Z",
+              "end": "2025-11-07T07:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T07:17:01.586137909Z",
+              "end": "2025-11-07T07:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T07:35:01.586137909Z",
+              "end": "2025-11-07T07:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T07:53:01.586137909Z",
+              "end": "2025-11-07T08:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T08:11:01.586137909Z",
+              "end": "2025-11-07T08:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T08:29:01.586137909Z",
+              "end": "2025-11-07T08:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T08:47:01.586137909Z",
+              "end": "2025-11-07T09:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:05:01.586137909Z",
+              "end": "2025-11-07T09:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:23:01.586137909Z",
+              "end": "2025-11-07T09:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:41:01.586137909Z",
+              "end": "2025-11-07T09:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:59:01.586137909Z",
+              "end": "2025-11-07T10:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T10:17:01.586137909Z",
+              "end": "2025-11-07T10:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T10:35:01.586137909Z",
+              "end": "2025-11-07T10:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T10:53:01.586137909Z",
+              "end": "2025-11-07T11:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T11:11:01.586137909Z",
+              "end": "2025-11-07T11:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T11:29:01.586137909Z",
+              "end": "2025-11-07T11:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T11:47:01.586137909Z",
+              "end": "2025-11-07T12:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:05:01.586137909Z",
+              "end": "2025-11-07T12:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:23:01.586137909Z",
+              "end": "2025-11-07T12:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:41:01.586137909Z",
+              "end": "2025-11-07T12:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:59:01.586137909Z",
+              "end": "2025-11-07T13:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T13:17:01.586137909Z",
+              "end": "2025-11-07T13:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T13:35:01.586137909Z",
+              "end": "2025-11-07T13:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T13:53:01.586137909Z",
+              "end": "2025-11-07T14:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T14:11:01.586137909Z",
+              "end": "2025-11-07T14:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T14:29:01.586137909Z",
+              "end": "2025-11-07T14:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T14:47:01.586137909Z",
+              "end": "2025-11-07T15:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:05:01.586137909Z",
+              "end": "2025-11-07T15:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:23:01.586137909Z",
+              "end": "2025-11-07T15:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:41:01.586137909Z",
+              "end": "2025-11-07T15:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:59:01.586137909Z",
+              "end": "2025-11-07T16:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T16:17:01.586137909Z",
+              "end": "2025-11-07T16:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T16:35:01.586137909Z",
+              "end": "2025-11-07T16:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T16:53:01.586137909Z",
+              "end": "2025-11-07T17:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T17:11:01.586137909Z",
+              "end": "2025-11-07T17:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T17:29:01.586137909Z",
+              "end": "2025-11-07T17:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T17:47:01.586137909Z",
+              "end": "2025-11-07T18:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:05:01.586137909Z",
+              "end": "2025-11-07T18:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:23:01.586137909Z",
+              "end": "2025-11-07T18:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:41:01.586137909Z",
+              "end": "2025-11-07T18:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:59:01.586137909Z",
+              "end": "2025-11-07T19:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T19:17:01.586137909Z",
+              "end": "2025-11-07T19:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T19:35:01.586137909Z",
+              "end": "2025-11-07T19:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T19:53:01.586137909Z",
+              "end": "2025-11-07T20:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T20:11:01.586137909Z",
+              "end": "2025-11-07T20:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T20:29:01.586137909Z",
+              "end": "2025-11-07T20:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T20:47:01.586137909Z",
+              "end": "2025-11-07T21:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T21:05:01.586137909Z",
+              "end": "2025-11-07T21:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T21:23:01.586137909Z",
+              "end": "2025-11-07T21:41:01.586137909Z"
+            }
+          ]
+        }
+      ],
+      "services": [
+        {
+          "id": "jellyfin",
+          "name": "Jellyfin",
+          "uptime_percent": 100,
+          "total_checks": 290,
+          "passing": 290,
+          "failing": 0,
+          "missing_slots": 0,
+          "last_state": "active",
+          "last_updated": "2025-11-07T21:40:55Z"
+        },
+        {
+          "id": "maria_db",
+          "name": "MariaDB",
+          "uptime_percent": 100,
+          "total_checks": 290,
+          "passing": 290,
+          "failing": 0,
+          "missing_slots": 0,
+          "last_state": "active",
+          "last_updated": "2025-11-07T21:40:55Z"
+        }
+      ],
+      "targets": [
+        {
+          "id": "jellyfin",
+          "name": "Jellyfin",
+          "service": "jellyfin.service",
+          "timeout_seconds": 8,
+          "use_sudo": false
+        },
+        {
+          "id": "maria_db",
+          "name": "MariaDB",
+          "service": "mariadb.service",
+          "timeout_seconds": 10,
+          "use_sudo": false
+        }
+      ],
+      "updated_at": "2025-11-07T21:41:01.586624578Z",
+      "source": "local"
+    },
+    {
+      "node": {
+        "id": "Zima1",
+        "name": "Zima1",
+        "interval_minutes": 5,
+        "connectivity_interval_seconds": 60
+      },
+      "status": {
+        "timestamp": "2025-11-07T21:38:02.647609089Z",
+        "checks": [
+          {
+            "id": "tsunamibot",
+            "name": "Tsunami Bot",
+            "ok": true,
+            "state": "active"
+          },
+          {
+            "id": "gallery",
+            "name": "Gallery page",
+            "ok": true,
+            "state": "active"
+          }
+        ]
+      },
+      "connectivity": {
+        "target": "1.1.1.1",
+        "ok": true,
+        "latency_ms": 7,
+        "checked_at": "2025-11-07T21:40:02.5783716Z"
+      },
+      "connectivity_history": [
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 8,
+          "checked_at": "2025-11-07T21:28:02.570644554Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 9,
+          "checked_at": "2025-11-07T21:29:02.581342153Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 11,
+          "checked_at": "2025-11-07T21:30:02.583165821Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 9,
+          "checked_at": "2025-11-07T21:31:02.581357541Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 10,
+          "checked_at": "2025-11-07T21:32:02.581984669Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 9,
+          "checked_at": "2025-11-07T21:33:02.580481872Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 16,
+          "checked_at": "2025-11-07T21:34:02.587896663Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 8,
+          "checked_at": "2025-11-07T21:35:02.579379433Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 9,
+          "checked_at": "2025-11-07T21:36:02.580586165Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 10,
+          "checked_at": "2025-11-07T21:37:02.582606483Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 18,
+          "checked_at": "2025-11-07T21:38:02.592552288Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 8,
+          "checked_at": "2025-11-07T21:39:02.580031228Z"
+        },
+        {
+          "target": "1.1.1.1",
+          "ok": true,
+          "latency_ms": 7,
+          "checked_at": "2025-11-07T21:40:02.5783716Z"
+        }
+      ],
+      "service_timelines": [
+        {
+          "service_id": "gallery",
+          "service_name": "Gallery page",
+          "timeline": [
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T21:41:01.586137909Z",
+              "end": "2025-11-06T21:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T21:59:01.586137909Z",
+              "end": "2025-11-06T22:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T22:17:01.586137909Z",
+              "end": "2025-11-06T22:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T22:35:01.586137909Z",
+              "end": "2025-11-06T22:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T22:53:01.586137909Z",
+              "end": "2025-11-06T23:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T23:11:01.586137909Z",
+              "end": "2025-11-06T23:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T23:29:01.586137909Z",
+              "end": "2025-11-06T23:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T23:47:01.586137909Z",
+              "end": "2025-11-07T00:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:05:01.586137909Z",
+              "end": "2025-11-07T00:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:23:01.586137909Z",
+              "end": "2025-11-07T00:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:41:01.586137909Z",
+              "end": "2025-11-07T00:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:59:01.586137909Z",
+              "end": "2025-11-07T01:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T01:17:01.586137909Z",
+              "end": "2025-11-07T01:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T01:35:01.586137909Z",
+              "end": "2025-11-07T01:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T01:53:01.586137909Z",
+              "end": "2025-11-07T02:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T02:11:01.586137909Z",
+              "end": "2025-11-07T02:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T02:29:01.586137909Z",
+              "end": "2025-11-07T02:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T02:47:01.586137909Z",
+              "end": "2025-11-07T03:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:05:01.586137909Z",
+              "end": "2025-11-07T03:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:23:01.586137909Z",
+              "end": "2025-11-07T03:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:41:01.586137909Z",
+              "end": "2025-11-07T03:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:59:01.586137909Z",
+              "end": "2025-11-07T04:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T04:17:01.586137909Z",
+              "end": "2025-11-07T04:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T04:35:01.586137909Z",
+              "end": "2025-11-07T04:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T04:53:01.586137909Z",
+              "end": "2025-11-07T05:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T05:11:01.586137909Z",
+              "end": "2025-11-07T05:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T05:29:01.586137909Z",
+              "end": "2025-11-07T05:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T05:47:01.586137909Z",
+              "end": "2025-11-07T06:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:05:01.586137909Z",
+              "end": "2025-11-07T06:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:23:01.586137909Z",
+              "end": "2025-11-07T06:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:41:01.586137909Z",
+              "end": "2025-11-07T06:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:59:01.586137909Z",
+              "end": "2025-11-07T07:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T07:17:01.586137909Z",
+              "end": "2025-11-07T07:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T07:35:01.586137909Z",
+              "end": "2025-11-07T07:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T07:53:01.586137909Z",
+              "end": "2025-11-07T08:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T08:11:01.586137909Z",
+              "end": "2025-11-07T08:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T08:29:01.586137909Z",
+              "end": "2025-11-07T08:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T08:47:01.586137909Z",
+              "end": "2025-11-07T09:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:05:01.586137909Z",
+              "end": "2025-11-07T09:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:23:01.586137909Z",
+              "end": "2025-11-07T09:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:41:01.586137909Z",
+              "end": "2025-11-07T09:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:59:01.586137909Z",
+              "end": "2025-11-07T10:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T10:17:01.586137909Z",
+              "end": "2025-11-07T10:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T10:35:01.586137909Z",
+              "end": "2025-11-07T10:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T10:53:01.586137909Z",
+              "end": "2025-11-07T11:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T11:11:01.586137909Z",
+              "end": "2025-11-07T11:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T11:29:01.586137909Z",
+              "end": "2025-11-07T11:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T11:47:01.586137909Z",
+              "end": "2025-11-07T12:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:05:01.586137909Z",
+              "end": "2025-11-07T12:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:23:01.586137909Z",
+              "end": "2025-11-07T12:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:41:01.586137909Z",
+              "end": "2025-11-07T12:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:59:01.586137909Z",
+              "end": "2025-11-07T13:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T13:17:01.586137909Z",
+              "end": "2025-11-07T13:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T13:35:01.586137909Z",
+              "end": "2025-11-07T13:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T13:53:01.586137909Z",
+              "end": "2025-11-07T14:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T14:11:01.586137909Z",
+              "end": "2025-11-07T14:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T14:29:01.586137909Z",
+              "end": "2025-11-07T14:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T14:47:01.586137909Z",
+              "end": "2025-11-07T15:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:05:01.586137909Z",
+              "end": "2025-11-07T15:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:23:01.586137909Z",
+              "end": "2025-11-07T15:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:41:01.586137909Z",
+              "end": "2025-11-07T15:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:59:01.586137909Z",
+              "end": "2025-11-07T16:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T16:17:01.586137909Z",
+              "end": "2025-11-07T16:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T16:35:01.586137909Z",
+              "end": "2025-11-07T16:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T16:53:01.586137909Z",
+              "end": "2025-11-07T17:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T17:11:01.586137909Z",
+              "end": "2025-11-07T17:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T17:29:01.586137909Z",
+              "end": "2025-11-07T17:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T17:47:01.586137909Z",
+              "end": "2025-11-07T18:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:05:01.586137909Z",
+              "end": "2025-11-07T18:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:23:01.586137909Z",
+              "end": "2025-11-07T18:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:41:01.586137909Z",
+              "end": "2025-11-07T18:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:59:01.586137909Z",
+              "end": "2025-11-07T19:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T19:17:01.586137909Z",
+              "end": "2025-11-07T19:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T19:35:01.586137909Z",
+              "end": "2025-11-07T19:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T19:53:01.586137909Z",
+              "end": "2025-11-07T20:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T20:11:01.586137909Z",
+              "end": "2025-11-07T20:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T20:29:01.586137909Z",
+              "end": "2025-11-07T20:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T20:47:01.586137909Z",
+              "end": "2025-11-07T21:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T21:05:01.586137909Z",
+              "end": "2025-11-07T21:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T21:23:01.586137909Z",
+              "end": "2025-11-07T21:41:01.586137909Z"
+            }
+          ]
+        },
+        {
+          "service_id": "tsunamibot",
+          "service_name": "Tsunami Bot",
+          "timeline": [
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T21:41:01.586137909Z",
+              "end": "2025-11-06T21:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T21:59:01.586137909Z",
+              "end": "2025-11-06T22:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T22:17:01.586137909Z",
+              "end": "2025-11-06T22:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T22:35:01.586137909Z",
+              "end": "2025-11-06T22:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T22:53:01.586137909Z",
+              "end": "2025-11-06T23:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T23:11:01.586137909Z",
+              "end": "2025-11-06T23:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T23:29:01.586137909Z",
+              "end": "2025-11-06T23:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-06T23:47:01.586137909Z",
+              "end": "2025-11-07T00:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:05:01.586137909Z",
+              "end": "2025-11-07T00:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:23:01.586137909Z",
+              "end": "2025-11-07T00:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:41:01.586137909Z",
+              "end": "2025-11-07T00:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T00:59:01.586137909Z",
+              "end": "2025-11-07T01:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T01:17:01.586137909Z",
+              "end": "2025-11-07T01:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T01:35:01.586137909Z",
+              "end": "2025-11-07T01:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T01:53:01.586137909Z",
+              "end": "2025-11-07T02:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T02:11:01.586137909Z",
+              "end": "2025-11-07T02:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T02:29:01.586137909Z",
+              "end": "2025-11-07T02:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T02:47:01.586137909Z",
+              "end": "2025-11-07T03:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:05:01.586137909Z",
+              "end": "2025-11-07T03:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:23:01.586137909Z",
+              "end": "2025-11-07T03:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:41:01.586137909Z",
+              "end": "2025-11-07T03:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T03:59:01.586137909Z",
+              "end": "2025-11-07T04:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T04:17:01.586137909Z",
+              "end": "2025-11-07T04:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T04:35:01.586137909Z",
+              "end": "2025-11-07T04:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T04:53:01.586137909Z",
+              "end": "2025-11-07T05:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T05:11:01.586137909Z",
+              "end": "2025-11-07T05:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T05:29:01.586137909Z",
+              "end": "2025-11-07T05:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T05:47:01.586137909Z",
+              "end": "2025-11-07T06:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:05:01.586137909Z",
+              "end": "2025-11-07T06:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:23:01.586137909Z",
+              "end": "2025-11-07T06:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:41:01.586137909Z",
+              "end": "2025-11-07T06:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T06:59:01.586137909Z",
+              "end": "2025-11-07T07:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T07:17:01.586137909Z",
+              "end": "2025-11-07T07:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T07:35:01.586137909Z",
+              "end": "2025-11-07T07:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T07:53:01.586137909Z",
+              "end": "2025-11-07T08:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T08:11:01.586137909Z",
+              "end": "2025-11-07T08:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T08:29:01.586137909Z",
+              "end": "2025-11-07T08:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T08:47:01.586137909Z",
+              "end": "2025-11-07T09:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:05:01.586137909Z",
+              "end": "2025-11-07T09:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:23:01.586137909Z",
+              "end": "2025-11-07T09:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:41:01.586137909Z",
+              "end": "2025-11-07T09:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T09:59:01.586137909Z",
+              "end": "2025-11-07T10:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T10:17:01.586137909Z",
+              "end": "2025-11-07T10:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T10:35:01.586137909Z",
+              "end": "2025-11-07T10:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T10:53:01.586137909Z",
+              "end": "2025-11-07T11:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T11:11:01.586137909Z",
+              "end": "2025-11-07T11:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T11:29:01.586137909Z",
+              "end": "2025-11-07T11:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T11:47:01.586137909Z",
+              "end": "2025-11-07T12:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:05:01.586137909Z",
+              "end": "2025-11-07T12:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:23:01.586137909Z",
+              "end": "2025-11-07T12:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:41:01.586137909Z",
+              "end": "2025-11-07T12:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T12:59:01.586137909Z",
+              "end": "2025-11-07T13:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T13:17:01.586137909Z",
+              "end": "2025-11-07T13:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T13:35:01.586137909Z",
+              "end": "2025-11-07T13:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T13:53:01.586137909Z",
+              "end": "2025-11-07T14:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T14:11:01.586137909Z",
+              "end": "2025-11-07T14:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T14:29:01.586137909Z",
+              "end": "2025-11-07T14:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T14:47:01.586137909Z",
+              "end": "2025-11-07T15:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:05:01.586137909Z",
+              "end": "2025-11-07T15:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:23:01.586137909Z",
+              "end": "2025-11-07T15:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:41:01.586137909Z",
+              "end": "2025-11-07T15:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T15:59:01.586137909Z",
+              "end": "2025-11-07T16:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T16:17:01.586137909Z",
+              "end": "2025-11-07T16:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T16:35:01.586137909Z",
+              "end": "2025-11-07T16:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T16:53:01.586137909Z",
+              "end": "2025-11-07T17:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T17:11:01.586137909Z",
+              "end": "2025-11-07T17:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T17:29:01.586137909Z",
+              "end": "2025-11-07T17:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T17:47:01.586137909Z",
+              "end": "2025-11-07T18:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:05:01.586137909Z",
+              "end": "2025-11-07T18:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:23:01.586137909Z",
+              "end": "2025-11-07T18:41:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:41:01.586137909Z",
+              "end": "2025-11-07T18:59:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T18:59:01.586137909Z",
+              "end": "2025-11-07T19:17:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T19:17:01.586137909Z",
+              "end": "2025-11-07T19:35:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T19:35:01.586137909Z",
+              "end": "2025-11-07T19:53:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T19:53:01.586137909Z",
+              "end": "2025-11-07T20:11:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T20:11:01.586137909Z",
+              "end": "2025-11-07T20:29:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T20:29:01.586137909Z",
+              "end": "2025-11-07T20:47:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T20:47:01.586137909Z",
+              "end": "2025-11-07T21:05:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T21:05:01.586137909Z",
+              "end": "2025-11-07T21:23:01.586137909Z"
+            },
+            {
+              "className": "state-success",
+              "label": "Operational",
+              "start": "2025-11-07T21:23:01.586137909Z",
+              "end": "2025-11-07T21:41:01.586137909Z"
+            }
+          ]
+        }
+      ],
+      "services": [
+        {
+          "id": "gallery",
+          "name": "Gallery page",
+          "uptime_percent": 100,
+          "total_checks": 289,
+          "passing": 289,
+          "failing": 0,
+          "missing_slots": 0,
+          "last_state": "active",
+          "last_updated": "2025-11-07T21:38:02Z"
+        },
+        {
+          "id": "tsunamibot",
+          "name": "Tsunami Bot",
+          "uptime_percent": 100,
+          "total_checks": 289,
+          "passing": 289,
+          "failing": 0,
+          "missing_slots": 0,
+          "last_state": "active",
+          "last_updated": "2025-11-07T21:38:02Z"
+        }
+      ],
+      "targets": [
+        {
+          "id": "tsunamibot",
+          "name": "Tsunami Bot",
+          "service": "",
+          "timeout_seconds": 0,
+          "use_sudo": false
+        },
+        {
+          "id": "gallery",
+          "name": "Gallery page",
+          "service": "",
+          "timeout_seconds": 0,
+          "use_sudo": false
+        }
+      ],
+      "updated_at": "2025-11-07T21:40:55.129914125Z",
+      "source": "peer"
+    }
+  ]
+}

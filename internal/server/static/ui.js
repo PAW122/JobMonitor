@@ -360,6 +360,8 @@ function buildConnectivityData(node, rangeStart, rangeEnd) {
     ? node.connectivity_history
     : [];
   const latest = node.connectivity || null;
+  const timelinePointsRaw =
+    node.connectivity_timeline || node.connectivityTimeline || null;
   if (!historyRaw.length && !latest) {
     return null;
   }
@@ -424,22 +426,25 @@ function buildConnectivityData(node, rangeStart, rangeEnd) {
     windowStart = new Date(windowEnd.getTime() - 24 * 60 * 60 * 1000);
   }
 
-  const intervalMs = getConnectivityIntervalMs(node, history);
-  const filledHistory = fillMissingHistory(
-    history,
-    intervalMs,
-    windowStart,
-    windowEnd,
-    "connectivity",
-    "Connectivity",
-  );
-
-  const timeline = buildTimelineSegments(
-    filledHistory,
-    windowStart,
-    windowEnd,
-    HISTORY_POINTS,
-  );
+  let filledHistory = history;
+  let timeline = mapTimelinePoints(timelinePointsRaw);
+  if (!timeline.length) {
+    const intervalMs = getConnectivityIntervalMs(node, history);
+    filledHistory = fillMissingHistory(
+      history,
+      intervalMs,
+      windowStart,
+      windowEnd,
+      "connectivity",
+      "Connectivity",
+    );
+    timeline = buildTimelineSegments(
+      filledHistory,
+      windowStart,
+      windowEnd,
+      HISTORY_POINTS,
+    );
+  }
   const stats = computeConnectivityStats(filledHistory);
   if (stats) {
     logDebug("Connectivity stats", stats);
@@ -654,6 +659,13 @@ function buildCompactTimelineMap(raw) {
     });
   });
   return map;
+}
+
+function mapTimelinePoints(raw) {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw.map((point) => compactPointToSegment(point));
 }
 
 function compactPointToSegment(point) {
