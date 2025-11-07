@@ -261,9 +261,6 @@ func BuildConnectivityTimeline(entries []models.ConnectivityStatus, start, end t
 		}
 		samples = append(samples, entry)
 	}
-	if len(samples) == 0 {
-		return buildEmptyTimeline(start, end, points)
-	}
 	sort.Slice(samples, func(i, j int) bool {
 		return samples[i].CheckedAt.Before(samples[j].CheckedAt)
 	})
@@ -277,11 +274,9 @@ func BuildConnectivityTimeline(entries []models.ConnectivityStatus, start, end t
 	idx := 0
 	var last models.ConnectivityStatus
 	var haveLast bool
-
-	for idx < len(samples) && samples[idx].CheckedAt.Before(start) {
-		last = samples[idx]
+	if len(samples) > 0 {
+		last = samples[0]
 		haveLast = true
-		idx++
 	}
 
 	for i := 0; i < points; i++ {
@@ -299,62 +294,29 @@ func BuildConnectivityTimeline(entries []models.ConnectivityStatus, start, end t
 		}
 
 		details := make([]models.TimelineDetail, 0, maxDetailsPerPoint)
-		bucketHasSample := false
-
 		for idx < len(samples) && !samples[idx].CheckedAt.After(bucketEnd) {
 			last = samples[idx]
 			haveLast = true
-			bucketHasSample = true
 			if len(details) < maxDetailsPerPoint {
-				details = append(details, connectivityDetail(last))
+				details = append(details, connectivityDetail(samples[idx]))
 			}
 			idx++
 		}
 
-		if !bucketHasSample && haveLast {
-			bucketHasSample = true
-			if len(details) < maxDetailsPerPoint {
-				detail := connectivityDetail(last)
-				detail.Timestamp = bucketStart
-				details = append(details, detail)
-			}
-		}
-
-		if bucketHasSample {
+		if haveLast {
 			point.ClassName, point.Label = connectivityClass(last)
-			if len(details) > 0 {
-				point.Details = details
+			if len(details) == 0 {
+				details = append(details, connectivityDetail(last))
 			}
+			if len(details) > maxDetailsPerPoint {
+				details = details[:maxDetailsPerPoint]
+			}
+			point.Details = details
 		}
 
 		result = append(result, point)
 	}
 
-	return result
-}
-
-func buildEmptyTimeline(start, end time.Time, points int) []models.TimelinePoint {
-	if !end.After(start) {
-		end = start.Add(time.Minute)
-	}
-	bucketDuration := end.Sub(start) / time.Duration(points)
-	if bucketDuration <= 0 {
-		bucketDuration = time.Minute
-	}
-	result := make([]models.TimelinePoint, 0, points)
-	for i := 0; i < points; i++ {
-		bucketStart := start.Add(time.Duration(i) * bucketDuration)
-		bucketEnd := bucketStart.Add(bucketDuration)
-		if i == points-1 {
-			bucketEnd = end
-		}
-		result = append(result, models.TimelinePoint{
-			ClassName: "state-missing",
-			Label:     "No data",
-			Start:     bucketStart,
-			End:       bucketEnd,
-		})
-	}
 	return result
 }
 
