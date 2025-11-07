@@ -247,48 +247,142 @@ func isWarningState(state string) bool {
 
 // BuildConnectivityTimeline reduces connectivity samples into compact timeline points.
 func BuildConnectivityTimeline(entries []models.ConnectivityStatus, start, end time.Time, points int) []models.TimelinePoint {
-	samples := make([]sample, 0, len(entries))
+	if points <= 0 {
+		points = DefaultTimelinePoints
+	}
+	if !end.After(start) {
+		end = start.Add(time.Minute)
+	}
+
+	samples := make([]models.ConnectivityStatus, 0, len(entries))
 	for _, entry := range entries {
-		ts := entry.CheckedAt
-		if ts.IsZero() {
+		if entry.CheckedAt.IsZero() {
 			continue
 		}
-		state := "unknown"
-		switch {
-		case entry.OK:
-			state = "online"
-		case entry.Error != "":
-			state = "offline"
+		samples = append(samples, entry)
+	}
+	if len(samples) == 0 {
+		return buildEmptyTimeline(start, end, points)
+	}
+	sort.Slice(samples, func(i, j int) bool {
+		return samples[i].CheckedAt.Before(samples[j].CheckedAt)
+	})
+
+	bucketDuration := end.Sub(start) / time.Duration(points)
+	if bucketDuration <= 0 {
+		bucketDuration = time.Minute
+	}
+
+	result := make([]models.TimelinePoint, 0, points)
+	idx := 0
+	var last models.ConnectivityStatus
+	var haveLast bool
+
+	for idx < len(samples) && samples[idx].CheckedAt.Before(start) {
+		last = samples[idx]
+		haveLast = true
+		idx++
+	}
+
+	for i := 0; i < points; i++ {
+		bucketStart := start.Add(time.Duration(i) * bucketDuration)
+		bucketEnd := bucketStart.Add(bucketDuration)
+		if i == points-1 {
+			bucketEnd = end
 		}
-		samples = append(samples, sample{
-			Timestamp: ts,
-			OK:        entry.OK,
-			State:     state,
-			Error:     entry.Error,
+
+		point := models.TimelinePoint{
+			ClassName: "state-missing",
+			Label:     "No data",
+			Start:     bucketStart,
+			End:       bucketEnd,
+		}
+
+		details := make([]models.TimelineDetail, 0, maxDetailsPerPoint)
+		bucketHasSample := false
+
+		for idx < len(samples) && !samples[idx].CheckedAt.After(bucketEnd) {
+			last = samples[idx]
+			haveLast = true
+			bucketHasSample = true
+			if len(details) < maxDetailsPerPoint {
+				details = append(details, connectivityDetail(last))
+			}
+			idx++
+		}
+
+		if !bucketHasSample && haveLast {
+			bucketHasSample = true
+			if len(details) < maxDetailsPerPoint {
+				detail := connectivityDetail(last)
+				detail.Timestamp = bucketStart
+				details = append(details, detail)
+			}
+		}
+
+		if bucketHasSample {
+			point.ClassName, point.Label = connectivityClass(last)
+			if len(details) > 0 {
+				point.Details = details
+			}
+		}
+
+		result = append(result, point)
+	}
+
+	return result
+}
+
+func buildEmptyTimeline(start, end time.Time, points int) []models.TimelinePoint {
+	if !end.After(start) {
+		end = start.Add(time.Minute)
+	}
+	bucketDuration := end.Sub(start) / time.Duration(points)
+	if bucketDuration <= 0 {
+		bucketDuration = time.Minute
+	}
+	result := make([]models.TimelinePoint, 0, points)
+	for i := 0; i < points; i++ {
+		bucketStart := start.Add(time.Duration(i) * bucketDuration)
+		bucketEnd := bucketStart.Add(bucketDuration)
+		if i == points-1 {
+			bucketEnd = end
+		}
+		result = append(result, models.TimelinePoint{
+			ClassName: "state-missing",
+			Label:     "No data",
+			Start:     bucketStart,
+			End:       bucketEnd,
 		})
 	}
-	if len(samples) > 0 {
-		sort.Slice(samples, func(i, j int) bool {
-			return samples[i].Timestamp.Before(samples[j].Timestamp)
-		})
-		first := samples[0]
-		if !start.IsZero() && start.Before(first.Timestamp) {
-			samples = append(samples, sample{
-				Timestamp: start,
-				OK:        first.OK,
-				State:     first.State,
-				Error:     first.Error,
-			})
-		}
-		last := samples[len(samples)-1]
-		if !end.IsZero() && end.After(last.Timestamp) {
-			samples = append(samples, sample{
-				Timestamp: end,
-				OK:        last.OK,
-				State:     last.State,
-				Error:     last.Error,
-			})
-		}
+	return result
+}
+
+func connectivityDetail(status models.ConnectivityStatus) models.TimelineDetail {
+	return models.TimelineDetail{
+		Timestamp: status.CheckedAt,
+		State:     connectivityState(status),
+		Error:     status.Error,
 	}
-	return buildTimeline(samples, start, end, points)
+}
+
+func connectivityState(status models.ConnectivityStatus) string {
+	if status.OK {
+		return "online"
+	}
+	if status.Error != "" {
+		return "offline"
+	}
+	return "unknown"
+}
+
+func connectivityClass(status models.ConnectivityStatus) (className, label string) {
+	switch {
+	case status.OK:
+		return "state-success", "Operational"
+	case status.Error != "":
+		return "state-error", "Unavailable"
+	default:
+		return "state-warning", "Unknown"
+	}
 }
