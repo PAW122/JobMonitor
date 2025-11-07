@@ -270,13 +270,16 @@ func BuildConnectivityTimeline(entries []models.ConnectivityStatus, start, end t
 		bucketDuration = time.Minute
 	}
 
+	gapThreshold := deriveConnectivityGap(samples)
+
 	result := make([]models.TimelinePoint, 0, points)
 	idx := 0
 	var last models.ConnectivityStatus
 	var haveLast bool
-	if len(samples) > 0 {
-		last = samples[0]
+	for idx < len(samples) && samples[idx].CheckedAt.Before(start) {
+		last = samples[idx]
 		haveLast = true
+		idx++
 	}
 
 	for i := 0; i < points; i++ {
@@ -294,30 +297,85 @@ func BuildConnectivityTimeline(entries []models.ConnectivityStatus, start, end t
 		}
 
 		details := make([]models.TimelineDetail, 0, maxDetailsPerPoint)
+		bucketSamples := make([]models.ConnectivityStatus, 0)
 		for idx < len(samples) && !samples[idx].CheckedAt.After(bucketEnd) {
-			last = samples[idx]
+			current := samples[idx]
+			last = current
 			haveLast = true
-			if len(details) < maxDetailsPerPoint {
-				details = append(details, connectivityDetail(samples[idx]))
-			}
+			bucketSamples = append(bucketSamples, current)
 			idx++
 		}
 
-		if haveLast {
+		switch {
+		case len(bucketSamples) > 0:
+			selected := bucketSamples[len(bucketSamples)-1]
+			point.ClassName, point.Label = connectivityClass(selected)
+			for _, sample := range bucketSamples {
+				if len(details) >= maxDetailsPerPoint {
+					break
+				}
+				details = append(details, connectivityDetail(sample))
+			}
+		case haveLast && bucketStart.Sub(last.CheckedAt) <= gapThreshold:
 			point.ClassName, point.Label = connectivityClass(last)
+			detail := connectivityDetail(last)
+			detail.Timestamp = bucketStart
+			details = append(details, detail)
+		default:
+			point.ClassName = "state-missing"
+			point.Label = "No data"
+		}
+
+		if len(details) > maxDetailsPerPoint {
+			details = details[:maxDetailsPerPoint]
+		}
+		if len(details) > 0 && point.ClassName != "state-missing" {
 			if len(details) == 0 {
 				details = append(details, connectivityDetail(last))
 			}
-			if len(details) > maxDetailsPerPoint {
-				details = details[:maxDetailsPerPoint]
-			}
 			point.Details = details
+		} else if point.ClassName == "state-missing" {
+			point.Details = nil
 		}
 
 		result = append(result, point)
 	}
 
 	return result
+}
+
+func deriveConnectivityGap(samples []models.ConnectivityStatus) time.Duration {
+	const defaultGap = 5 * time.Minute
+	if len(samples) < 2 {
+		return defaultGap
+	}
+	diffs := make([]time.Duration, 0, len(samples)-1)
+	prev := samples[0].CheckedAt
+	for i := 1; i < len(samples); i++ {
+		curr := samples[i].CheckedAt
+		if curr.After(prev) {
+			diffs = append(diffs, curr.Sub(prev))
+		}
+		prev = curr
+	}
+	if len(diffs) == 0 {
+		return defaultGap
+	}
+	sort.Slice(diffs, func(i, j int) bool {
+		return diffs[i] < diffs[j]
+	})
+	median := diffs[len(diffs)/2]
+	if median <= 0 {
+		return defaultGap
+	}
+	gap := median * 2
+	if gap < time.Minute {
+		return time.Minute
+	}
+	if gap > 2*time.Hour {
+		return 2 * time.Hour
+	}
+	return gap
 }
 
 func connectivityDetail(status models.ConnectivityStatus) models.TimelineDetail {
