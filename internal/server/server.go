@@ -4,13 +4,16 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"jobmonitor/internal/cluster"
+	timeline "jobmonitor/internal/history"
 	"jobmonitor/internal/metrics"
 	"jobmonitor/internal/models"
 	"jobmonitor/internal/monitor"
@@ -31,6 +34,13 @@ type Server struct {
 	targets        []models.Target
 	clusterService *cluster.Service
 	historyLimit   int
+	cacheMu        sync.RWMutex
+	timelineCache  map[string]timelineCacheEntry
+}
+
+type timelineCacheEntry struct {
+	version uint64
+	data    []models.ServiceTimeline
 }
 
 const connectivityHistoryCap = 5000
@@ -69,6 +79,7 @@ func New(
 		targets:        targets,
 		clusterService: clusterService,
 		historyLimit:   historyLimit,
+		timelineCache:  make(map[string]timelineCacheEntry),
 	}
 	s.node.IntervalMinutes = int(interval / time.Minute)
 	if node.ConnectivityIntervalSeconds > 0 {
@@ -211,7 +222,7 @@ func (s *Server) handleNodeUptime(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleCluster(w http.ResponseWriter, r *http.Request) {
 	window := parseWindow(r)
 	if s.clusterService == nil {
-		local := s.localPeerSnapshot(window.start, window.end)
+		local := s.localPeerSnapshot(window)
 		writeJSON(w, http.StatusOK, cluster.ClusterSnapshot{
 			GeneratedAt: time.Now().UTC(),
 			Range:       window.key,
@@ -224,31 +235,64 @@ func (s *Server) handleCluster(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.clusterService.Snapshot(window.start, window.end))
 }
 
-func (s *Server) localPeerSnapshot(start, end time.Time) cluster.PeerSnapshot {
-	history := s.storage.HistorySince(start)
-	history = filterHistory(history, start, end)
+func (s *Server) localPeerSnapshot(win window) cluster.PeerSnapshot {
+	version := s.storage.Version()
+	history := s.storage.HistorySince(win.start)
+	history = filterHistory(history, win.start, win.end)
 	latest, ok := s.storage.Latest()
 	var status *models.StatusEntry
 	if ok {
 		status = &latest
 	}
-	services := metrics.ComputeServiceUptime(history, start, end, s.interval, s.targets)
+	services := metrics.ComputeServiceUptime(history, win.start, win.end, s.interval, s.targets)
+	timelines := s.cachedServiceTimelines(win, history, status, version)
 	var connectivity *models.ConnectivityStatus
 	if sample := s.latestConnectivity(); sample != nil {
 		connectivity = sample
 	}
-	connectivityHistory := s.connectivityHistory(start, end)
+	connectivityHistory := s.connectivityHistory(win.start, win.end)
 	return cluster.PeerSnapshot{
 		Node:                s.node,
 		Status:              status,
 		Connectivity:        connectivity,
 		ConnectivityHistory: connectivityHistory,
-		History:             history,
+		History:             nil,
+		ServiceTimelines:    timelines,
 		Services:            services,
 		Targets:             s.targets,
 		UpdatedAt:           time.Now().UTC(),
 		Source:              "local",
 	}
+}
+
+func (s *Server) cachedServiceTimelines(win window, history []models.StatusEntry, latest *models.StatusEntry, version uint64) []models.ServiceTimeline {
+	key := win.cacheKey()
+	if key != "" {
+		if data, ok := s.timelineFromCache(key, version); ok {
+			return data
+		}
+	}
+	data := timeline.BuildServiceTimelines(history, latest, s.targets, win.start, win.end, timeline.DefaultTimelinePoints)
+	if key != "" && version == s.storage.Version() {
+		s.saveTimelineCache(key, version, data)
+	}
+	return data
+}
+
+func (s *Server) timelineFromCache(key string, version uint64) ([]models.ServiceTimeline, bool) {
+	s.cacheMu.RLock()
+	entry, ok := s.timelineCache[key]
+	s.cacheMu.RUnlock()
+	if !ok || entry.version != version {
+		return nil, false
+	}
+	return entry.data, true
+}
+
+func (s *Server) saveTimelineCache(key string, version uint64, data []models.ServiceTimeline) {
+	s.cacheMu.Lock()
+	s.timelineCache[key] = timelineCacheEntry{version: version, data: data}
+	s.cacheMu.Unlock()
 }
 
 func parseLimit(r *http.Request, fallback int) int {
@@ -274,6 +318,13 @@ type window struct {
 	start    time.Time
 	end      time.Time
 	duration time.Duration
+}
+
+func (w window) cacheKey() string {
+	if w.key != "" {
+		return w.key
+	}
+	return fmt.Sprintf("%d:%d", w.start.Unix(), w.end.Unix())
 }
 
 func parseWindow(r *http.Request) window {

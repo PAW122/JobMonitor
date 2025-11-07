@@ -17,6 +17,7 @@ type StatusStorage struct {
 	mu      sync.RWMutex
 	path    string
 	history []models.StatusEntry
+	version uint64
 }
 
 // NewStatusStorage creates a storage instance and loads existing history if present.
@@ -29,6 +30,7 @@ func NewStatusStorage(path string) (*StatusStorage, error) {
 	if err := s.load(); err != nil {
 		return nil, err
 	}
+	s.version = uint64(len(s.history))
 	return s, nil
 }
 
@@ -38,6 +40,7 @@ func (s *StatusStorage) Append(entry models.StatusEntry) error {
 	defer s.mu.Unlock()
 
 	s.history = append(s.history, entry)
+	s.version++
 	return s.persist()
 }
 
@@ -119,6 +122,7 @@ func (s *StatusStorage) load() error {
 	}
 
 	s.history = entries
+	s.version = uint64(len(s.history))
 	return nil
 }
 
@@ -137,4 +141,11 @@ func (s *StatusStorage) persist() error {
 		return fmt.Errorf("replace history file: %w", err)
 	}
 	return nil
+}
+
+// Version returns a monotonically increasing version number for the history.
+func (s *StatusStorage) Version() uint64 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.version
 }

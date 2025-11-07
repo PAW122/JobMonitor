@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"jobmonitor/internal/config"
+	timeline "jobmonitor/internal/history"
 	"jobmonitor/internal/metrics"
 	"jobmonitor/internal/models"
 	"jobmonitor/internal/monitor"
@@ -156,7 +157,14 @@ func (s *Service) localSnapshot(start, end time.Time) PeerSnapshot {
 	if ok {
 		status = &latest
 	}
-
+	timelines := timeline.BuildServiceTimelines(
+		history,
+		status,
+		s.targets,
+		start,
+		end,
+		timeline.DefaultTimelinePoints,
+	)
 	services := metrics.ComputeServiceUptime(history, start, end, s.interval, s.targets)
 	var connectivity *models.ConnectivityStatus
 	if s.connectivity != nil {
@@ -177,7 +185,8 @@ func (s *Service) localSnapshot(start, end time.Time) PeerSnapshot {
 		Status:              status,
 		Connectivity:        connectivity,
 		ConnectivityHistory: connectivityHistory,
-		History:             history,
+		History:             nil,
+		ServiceTimelines:    timelines,
 		Services:            services,
 		Targets:             s.targets,
 		UpdatedAt:           time.Now().UTC(),
@@ -198,12 +207,21 @@ func (s *Service) materialisePeerSnapshot(snapshot PeerSnapshot, start, end time
 	services := metrics.ComputeServiceUptime(history, start, endpoint, interval, snapshot.Targets)
 	connectivityHistory := filterConnectivityHistory(snapshot.ConnectivityHistory, start, end)
 
+	timelines := timeline.BuildServiceTimelines(
+		history,
+		snapshot.Status,
+		snapshot.Targets,
+		start,
+		end,
+		timeline.DefaultTimelinePoints,
+	)
 	return PeerSnapshot{
 		Node:                snapshot.Node,
 		Status:              snapshot.Status,
 		Connectivity:        snapshot.Connectivity,
 		ConnectivityHistory: connectivityHistory,
-		History:             history,
+		History:             nil,
+		ServiceTimelines:    timelines,
 		Services:            services,
 		Targets:             snapshot.Targets,
 		UpdatedAt:           snapshot.UpdatedAt,

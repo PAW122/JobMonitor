@@ -56,7 +56,8 @@ type PeerSnapshot struct {
 	Status              *models.StatusEntry         `json:"status,omitempty"`
 	Connectivity        *models.ConnectivityStatus  `json:"connectivity,omitempty"`
 	ConnectivityHistory []models.ConnectivityStatus `json:"connectivity_history,omitempty"`
-	History             []models.StatusEntry        `json:"history"`
+	History             []models.StatusEntry        `json:"history,omitempty"`
+	ServiceTimelines    []models.ServiceTimeline    `json:"service_timelines,omitempty"`
 	Services            []metrics.ServiceUptime     `json:"services"`
 	Targets             []models.Target             `json:"targets,omitempty"`
 	UpdatedAt           time.Time                   `json:"updated_at"`

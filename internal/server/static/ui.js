@@ -12,6 +12,7 @@ const debugClearBtn = document.querySelector("#debug-clear");
 
 const REFRESH_INTERVAL = 30_000;
 const HISTORY_POINTS = 80;
+const MAX_TIMELINE_DETAILS = 3;
 const RANGE_LABELS = {
   "24h": "Last 24 hours",
   "30d": "Last 30 days",
@@ -558,6 +559,9 @@ function buildServiceData(node, rangeStart, rangeEnd) {
   const latestMap = new Map(
     (node.status?.checks || []).map((check) => [check.id, check]),
   );
+  const compactTimelineMap = buildCompactTimelineMap(
+    node.service_timelines || node.serviceTimelines,
+  );
 
   const historyMap = new Map();
   (node.history || []).forEach((entry) => {
@@ -581,48 +585,108 @@ function buildServiceData(node, rangeStart, rangeEnd) {
     ...metricsMap.keys(),
     ...latestMap.keys(),
     ...historyMap.keys(),
+    ...compactTimelineMap.keys(),
   ]);
 
   const services = [];
   ids.forEach((id) => {
     const metric = metricsMap.get(id);
     const latestCheck = latestMap.get(id);
-    const history = (historyMap.get(id) || []).sort(
+    const compact = compactTimelineMap.get(id);
+    let timeline = compact?.segments || null;
+    let history = null;
+    const rawHistory = (historyMap.get(id) || []).sort(
       (a, b) => new Date(a.timestamp) - new Date(b.timestamp),
     );
     let name =
+      compact?.name ||
       targetMap.get(id)?.name ||
       metric?.name ||
       latestCheck?.name ||
-      (history.length ? history[history.length - 1].name : null) ||
+      (rawHistory.length ? rawHistory[rawHistory.length - 1].name : null) ||
       id;
-    const intervalMs = getIntervalMs(node, history);
-    const filledHistory = fillMissingHistory(
-      history,
-      intervalMs,
-      rangeStart,
-      rangeEnd,
-      id,
-      name,
-    );
-    const timeline = buildTimelineSegments(
-      filledHistory,
-      rangeStart,
-      rangeEnd,
-      HISTORY_POINTS,
-    );
+    if (!timeline || !timeline.length) {
+      const intervalMs = getIntervalMs(node, rawHistory);
+      history = fillMissingHistory(
+        rawHistory,
+        intervalMs,
+        rangeStart,
+        rangeEnd,
+        id,
+        name,
+      );
+      timeline = buildTimelineSegments(
+        history,
+        rangeStart,
+        rangeEnd,
+        HISTORY_POINTS,
+      );
+    }
     services.push({
       id,
       name,
       metric,
       latestCheck,
-      history: filledHistory,
+      history,
       timeline,
     });
   });
 
   services.sort((a, b) => a.name.localeCompare(b.name, "en-US"));
   return services;
+}
+
+function buildCompactTimelineMap(raw) {
+  const map = new Map();
+  if (!Array.isArray(raw)) {
+    return map;
+  }
+  raw.forEach((item) => {
+    if (!item?.service_id) {
+      return;
+    }
+    const segments = Array.isArray(item.timeline)
+      ? item.timeline.map((point) => compactPointToSegment(point))
+      : [];
+    map.set(item.service_id, {
+      name: item.service_name || item.serviceId || item.service_id,
+      segments,
+    });
+  });
+  return map;
+}
+
+function compactPointToSegment(point) {
+  if (!point || typeof point !== "object") {
+    return { className: "state-missing", tooltip: "No data" };
+  }
+  const className =
+    point.className ||
+    (typeof point.status === "string" && point.status.startsWith("state-")
+      ? point.status
+      : `state-${String(point.status || "missing").toLowerCase()}`);
+  const tooltip = point.tooltip || formatCompactTimelineTooltip(point);
+  return { className, tooltip };
+}
+
+function formatCompactTimelineTooltip(point) {
+  const label = point.label || "Status";
+  const start = point.start ? new Date(point.start) : null;
+  const end = point.end ? new Date(point.end) : null;
+  const base =
+    start && end
+      ? formatBucketTooltip(start.getTime(), end.getTime(), label)
+      : label;
+  const details = Array.isArray(point.details)
+    ? point.details.slice(0, MAX_TIMELINE_DETAILS).map((detail) => {
+        const ts = detail.timestamp ? new Date(detail.timestamp) : null;
+        const tsLabel = ts ? formatTimestamp(ts) : "Unknown time";
+        const state = detail.state || "no state";
+        const error = detail.error ? ` - ${detail.error}` : "";
+        return `${tsLabel}: ${state}${error}`;
+      })
+    : [];
+  return details.length ? `${base}\n${details.join("\n")}` : base;
 }
 
 function getIntervalMs(node, history) {
