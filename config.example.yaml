@@ -13,6 +13,7 @@ targets:
     name: Tsunami Bot
     service: tsunamibot.service
     timeout_seconds: 8
+    url: https://status.example.com/tsunamibot
   - id: nginx
     name: Reverse Proxy
     service: nginx.service

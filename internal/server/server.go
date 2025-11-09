@@ -171,6 +171,7 @@ func (s *Server) handleNodeStatus(w http.ResponseWriter, _ *http.Request) {
 		Node:         s.node,
 		GeneratedAt:  time.Now().UTC(),
 		Connectivity: s.latestConnectivity(),
+		Targets:      s.targets,
 	}
 	resp.Node.IntervalMinutes = int(s.interval / time.Minute)
 	if ok {
@@ -201,6 +202,7 @@ func (s *Server) handleNodeHistory(w http.ResponseWriter, r *http.Request) {
 		Range:                window.key,
 		RangeStart:           window.start,
 		RangeEnd:             window.end,
+		Targets:              s.targets,
 	}
 	resp.Node.IntervalMinutes = int(s.interval / time.Minute)
 	writeJSON(w, http.StatusOK, resp)

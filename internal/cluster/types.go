@@ -26,6 +26,7 @@ type NodeStatusResponse struct {
 	Node         Node                       `json:"node"`
 	Status       *models.StatusEntry        `json:"status,omitempty"`
 	Connectivity *models.ConnectivityStatus `json:"connectivity,omitempty"`
+	Targets      []models.Target            `json:"targets,omitempty"`
 	GeneratedAt  time.Time                  `json:"generated_at"`
 }
 
@@ -39,6 +40,7 @@ type NodeHistoryResponse struct {
 	Range                string                      `json:"range"`
 	RangeStart           time.Time                   `json:"range_start"`
 	RangeEnd             time.Time                   `json:"range_end"`
+	Targets              []models.Target             `json:"targets,omitempty"`
 }
 
 // NodeUptimeResponse describes uptime payload from /api/node/uptime.

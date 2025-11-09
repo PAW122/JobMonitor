@@ -248,8 +248,48 @@ main {
   gap: 0.25rem;
 }
 
+.service-label-row {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
 .service-label {
   font-weight: 600;
+}
+
+.service-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  background-color: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+  text-decoration: none;
+  line-height: 1;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.service-link:hover,
+.service-link:focus-visible {
+  color: #0ea5e9;
+  border-color: rgba(14, 165, 233, 0.6);
+  background-color: rgba(14, 165, 233, 0.2);
+  outline: none;
+}
+
+.service-link:focus-visible {
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.35);
+}
+
+.service-link-icon {
+  width: 0.85rem;
+  height: 0.85rem;
 }
 
 .service-row-meta {

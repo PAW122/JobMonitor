@@ -273,7 +273,13 @@ func (s *Service) fetchPeer(peer config.Peer) error {
 		return fmt.Errorf("history fetch failed: %w", err)
 	}
 
-	targets := deriveTargets(statusResp.Status, historyResp.History)
+	targets := statusResp.Targets
+	if len(targets) == 0 {
+		targets = historyResp.Targets
+	}
+	if len(targets) == 0 {
+		targets = deriveTargets(statusResp.Status, historyResp.History)
+	}
 
 	s.mu.Lock()
 	s.peersData[peer.ID] = PeerSnapshot{

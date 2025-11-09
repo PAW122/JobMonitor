@@ -17,7 +17,8 @@ const RANGE_LABELS = {
   "24h": "Last 24 hours",
   "30d": "Last 30 days",
 };
-const DEBUG_VERSION = "20251101";
+const DEBUG_VERSION = "20251108";
+const SVG_NS = "http://www.w3.org/2000/svg";
 const DEBUG_LIMIT = 120;
 const debugBuffer = [];
 const debugEnabled = Boolean(debugPanel && debugLogEl);
@@ -227,10 +228,29 @@ function renderServiceRow(service) {
 
   const title = document.createElement("div");
   title.className = "service-row-title";
-  title.innerHTML = `
-    <span class="service-label">${service.name}</span>
-    <span class="meta-text">ID: ${service.id}</span>
-  `;
+  const labelRow = document.createElement("div");
+  labelRow.className = "service-label-row";
+  const label = document.createElement("span");
+  label.className = "service-label";
+  label.textContent = service.name;
+  labelRow.appendChild(label);
+  if (service.url) {
+    const link = document.createElement("a");
+    link.className = "service-link";
+    link.href = service.url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    const labelText = service.name || service.id;
+    link.setAttribute("aria-label", `Open ${labelText} in a new tab`);
+    link.title = `Open ${labelText} in a new tab`;
+    link.appendChild(createExternalLinkIcon());
+    labelRow.appendChild(link);
+  }
+  title.appendChild(labelRow);
+  const metaText = document.createElement("span");
+  metaText.className = "meta-text";
+  metaText.textContent = `ID: ${service.id}`;
+  title.appendChild(metaText);
   head.appendChild(title);
 
   const meta = document.createElement("div");
@@ -293,6 +313,22 @@ function renderServiceRow(service) {
   }
 
   return row;
+}
+
+function createExternalLinkIcon() {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("viewBox", "0 0 20 20");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.classList.add("service-link-icon");
+  const path = document.createElementNS(SVG_NS, "path");
+  path.setAttribute(
+    "d",
+    "M13 3h4v4h-2V5.41l-7.59 7.6-1.42-1.42 7.6-7.59H13V3zm3 8v6H4V4h6V2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2v-6h-2z",
+  );
+  path.setAttribute("fill", "currentColor");
+  svg.appendChild(path);
+  return svg;
 }
 
 function renderConnectivitySection(data) {
@@ -595,6 +631,7 @@ function buildServiceData(node, rangeStart, rangeEnd) {
 
   const services = [];
   ids.forEach((id) => {
+    const target = targetMap.get(id);
     const metric = metricsMap.get(id);
     const latestCheck = latestMap.get(id);
     const compact = compactTimelineMap.get(id);
@@ -605,11 +642,12 @@ function buildServiceData(node, rangeStart, rangeEnd) {
     );
     let name =
       compact?.name ||
-      targetMap.get(id)?.name ||
+      target?.name ||
       metric?.name ||
       latestCheck?.name ||
       (rawHistory.length ? rawHistory[rawHistory.length - 1].name : null) ||
       id;
+    const serviceUrl = normalizeServiceUrl(target?.url);
     if (!timeline || !timeline.length) {
       const intervalMs = getIntervalMs(node, rawHistory);
       history = fillMissingHistory(
@@ -630,6 +668,7 @@ function buildServiceData(node, rangeStart, rangeEnd) {
     services.push({
       id,
       name,
+      url: serviceUrl,
       metric,
       latestCheck,
       history,
@@ -639,6 +678,42 @@ function buildServiceData(node, rangeStart, rangeEnd) {
 
   services.sort((a, b) => a.name.localeCompare(b.name, "en-US"));
   return services;
+}
+
+function normalizeServiceUrl(url) {
+  if (typeof url !== "string") {
+    return null;
+  }
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const hasProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(trimmed);
+  const protocolRelative = trimmed.startsWith("//");
+  const looksRelative =
+    trimmed.startsWith("/") ||
+    trimmed.startsWith("./") ||
+    trimmed.startsWith("../");
+  let candidate = trimmed;
+  let base = undefined;
+  if (hasProtocol) {
+    candidate = trimmed;
+  } else if (protocolRelative) {
+    candidate = `https:${trimmed}`;
+  } else if (looksRelative) {
+    base = window.location.origin;
+  } else {
+    candidate = `https://${trimmed}`;
+  }
+  try {
+    const parsed = base ? new URL(candidate, base) : new URL(candidate);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null;
+    }
+    return parsed.href;
+  } catch (_err) {
+    return null;
+  }
 }
 
 function buildCompactTimelineMap(raw) {

@@ -9,6 +9,7 @@ type Target struct {
 	ID             string `yaml:"id" json:"id"`
 	Name           string `yaml:"name" json:"name"`
 	Service        string `yaml:"service" json:"service"`
+	URL            string `yaml:"url" json:"url,omitempty"`
 	TimeoutSeconds int    `yaml:"timeout_seconds" json:"timeout_seconds"`
 	UseSudo        bool   `yaml:"use_sudo" json:"use_sudo"`
 }
