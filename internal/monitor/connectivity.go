@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"log"
 	"net"
 	"sort"
 	"strings"
@@ -9,6 +10,7 @@ import (
 
 	"jobmonitor/internal/config"
 	"jobmonitor/internal/models"
+	"jobmonitor/internal/storage"
 )
 
 // ConnectivitySource exposes connectivity probe results.
@@ -23,6 +25,7 @@ type ConnectivityMonitor struct {
 	cfg        config.MonitorDNS
 	interval   time.Duration
 	maxHistory int
+	store      *storage.ConnectivityStorage
 
 	mu      sync.RWMutex
 	latest  *models.ConnectivityStatus
@@ -33,7 +36,7 @@ type ConnectivityMonitor struct {
 }
 
 // NewConnectivityMonitor configures a new connectivity monitor.
-func NewConnectivityMonitor(cfg config.MonitorDNS) *ConnectivityMonitor {
+func NewConnectivityMonitor(cfg config.MonitorDNS, store *storage.ConnectivityStorage) *ConnectivityMonitor {
 	interval := time.Duration(cfg.IntervalSeconds) * time.Second
 	if interval <= 0 {
 		interval = 60 * time.Second
@@ -55,13 +58,16 @@ func NewConnectivityMonitor(cfg config.MonitorDNS) *ConnectivityMonitor {
 		}
 	}
 
-	return &ConnectivityMonitor{
+	monitor := &ConnectivityMonitor{
 		cfg:        cfg,
 		interval:   interval,
 		maxHistory: historyCap,
+		store:      store,
 		stopCh:     make(chan struct{}),
 		doneCh:     make(chan struct{}),
 	}
+	monitor.seedFromStore()
+	return monitor
 }
 
 // Start launches the monitoring loop. If disabled, the monitor exits immediately.
@@ -185,11 +191,52 @@ func (m *ConnectivityMonitor) probe(timeout time.Duration) {
 		_ = conn.Close()
 	}
 
+	var historySnapshot []models.ConnectivityStatus
+
 	m.mu.Lock()
 	m.latest = &status
 	m.history = append(m.history, status)
 	if len(m.history) > m.maxHistory {
 		m.history = m.history[len(m.history)-m.maxHistory:]
 	}
+	if len(m.history) > 0 {
+		historySnapshot = make([]models.ConnectivityStatus, len(m.history))
+		copy(historySnapshot, m.history)
+	}
 	m.mu.Unlock()
+
+	if len(historySnapshot) > 0 {
+		m.persistHistory(historySnapshot)
+	}
+}
+
+func (m *ConnectivityMonitor) seedFromStore() {
+	if m.store == nil {
+		return
+	}
+	history := m.store.History()
+	if len(history) == 0 {
+		return
+	}
+	if len(history) > m.maxHistory {
+		history = history[len(history)-m.maxHistory:]
+	}
+
+	m.mu.Lock()
+	m.history = append(m.history[:0], history...)
+	if len(m.history) > 0 {
+		latest := m.history[len(m.history)-1]
+		m.latest = new(models.ConnectivityStatus)
+		*m.latest = latest
+	}
+	m.mu.Unlock()
+}
+
+func (m *ConnectivityMonitor) persistHistory(history []models.ConnectivityStatus) {
+	if m.store == nil {
+		return
+	}
+	if err := m.store.Replace(history); err != nil {
+		log.Printf("persist connectivity history failed: %v", err)
+	}
 }

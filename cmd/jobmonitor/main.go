@@ -38,11 +38,17 @@ func main() {
 		log.Fatalf("initialise storage: %v", err)
 	}
 
+	connectivityPath := filepath.Join(cfg.DataDirectory, "connectivity_history.json")
+	connectivityStore, err := storage.NewConnectivityStorage(connectivityPath)
+	if err != nil {
+		log.Fatalf("initialise connectivity storage: %v", err)
+	}
+
 	mon := monitor.New(time.Duration(cfg.IntervalMinutes)*time.Minute, cfg.Targets, store)
 	mon.Start()
 	defer mon.Stop()
 
-	connMon := monitor.NewConnectivityMonitor(cfg.MonitorDNS)
+	connMon := monitor.NewConnectivityMonitor(cfg.MonitorDNS, connectivityStore)
 	connMon.Start()
 	defer connMon.Stop()
 
