@@ -22,14 +22,35 @@
         </div>
       </header>
 
+      <div class="view-switcher" id="view-switcher">
+        <button type="button" class="view-button active" data-view="dashboard">Dashboard</button>
+        <button type="button" class="view-button" data-view="overview">Overview</button>
+      </div>
+
+      <div id="connection-banner" class="connection-banner" role="status" aria-live="polite" hidden>
+        Live overview updates paused. Retrying connection…
+      </div>
+
       <main>
-        <section class="status-grid" id="status-cards">
+        <section class="overview-panel" id="overview-panel" hidden>
+          <div class="overview-head">
+            <h2>Live Overview</h2>
+            <span class="meta-text" id="overview-meta">Waiting for data…</span>
+          </div>
+          <div class="overview-grid" id="overview-grid">
+            <div class="overview-empty">
+              Switch to the detailed dashboard while we gather the last 30 minutes of history.
+            </div>
+          </div>
+        </section>
+
+        <section class="status-grid" id="status-cards" data-dashboard-section>
           <div class="empty-state">
             No data collected. Make sure JobMonitor is running and has captured at least one sample.
           </div>
         </section>
 
-        <section class="legend">
+        <section class="legend" data-dashboard-section>
           <h2>Legend</h2>
           <div class="legend-items">
             <span><span class="legend-dot state-success"></span> active</span>
@@ -39,7 +60,7 @@
           </div>
         </section>
 
-        <section class="incident-panel" id="incident-panel">
+        <section class="incident-panel" id="incident-panel" data-dashboard-section>
           <div class="panel-head">
             <h2>Recent incidents</h2>
             <span class="meta-text" id="incident-meta"></span>

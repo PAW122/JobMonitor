@@ -6,17 +6,26 @@ const incidentPanel = document.querySelector("#incident-panel");
 const incidentList = document.querySelector("#incident-list");
 const incidentMeta = document.querySelector("#incident-meta");
 const rangeButtons = document.querySelectorAll(".range-button");
+const viewButtons = document.querySelectorAll("[data-view]");
+const dashboardSections = document.querySelectorAll("[data-dashboard-section]");
+const overviewPanel = document.querySelector("#overview-panel");
+const overviewGrid = document.querySelector("#overview-grid");
+const overviewMeta = document.querySelector("#overview-meta");
+const connectionBanner = document.querySelector("#connection-banner");
 const debugPanel = document.querySelector("#debug-panel");
 const debugLogEl = document.querySelector("#debug-log");
 const debugClearBtn = document.querySelector("#debug-clear");
 
 const REFRESH_INTERVAL = 30_000;
+const OVERVIEW_REFRESH_INTERVAL = 60_000;
 const HISTORY_POINTS = 80;
 const MAX_TIMELINE_DETAILS = 3;
 const RANGE_LABELS = {
   "24h": "Last 24 hours",
   "30d": "Last 30 days",
 };
+const OVERVIEW_LIMIT = 9;
+const OVERVIEW_BUCKET_COUNT = 3;
 const DEBUG_VERSION = "20251108";
 const SVG_NS = "http://www.w3.org/2000/svg";
 const DEBUG_LIMIT = 120;
@@ -24,6 +33,10 @@ const debugBuffer = [];
 const debugEnabled = Boolean(debugPanel && debugLogEl);
 
 let currentRange = "24h";
+let currentViewMode = "dashboard";
+let overviewSocket = null;
+let overviewReconnectTimer = null;
+let overviewFallbackTimer = null;
 
 function logDebug(message, data) {
   if (!debugEnabled) {
@@ -64,6 +77,17 @@ if (debugEnabled) {
     logDebug("Debug log cleared by user");
   });
 }
+
+viewButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const { view } = button.dataset;
+    if (!view || view === currentViewMode) {
+      return;
+    }
+    setActiveView(view);
+  });
+});
+setActiveView(currentViewMode);
 
 rangeButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -1281,6 +1305,7 @@ setInterval(() => {
     console.error("Scheduled refresh failed", err),
   );
 }, REFRESH_INTERVAL);
+initOverviewChannel();
 
 function setActiveRange(range) {
   if (range) {
@@ -1289,5 +1314,273 @@ function setActiveRange(range) {
   rangeButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.range === currentRange);
   });
+}
+
+function setActiveView(view) {
+  const nextView = view === "overview" ? "overview" : "dashboard";
+  const changed = currentViewMode !== nextView;
+  currentViewMode = nextView;
+  viewButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.view === currentViewMode);
+  });
+  dashboardSections.forEach((section) => {
+    if (!section) {
+      return;
+    }
+    section.hidden = currentViewMode !== "dashboard";
+  });
+  if (overviewPanel) {
+    overviewPanel.hidden = currentViewMode !== "overview";
+  }
+  if (changed) {
+    logDebug("View switched", { view: currentViewMode });
+  }
+}
+
+function initOverviewChannel() {
+  if (!overviewGrid || !overviewPanel) {
+    return;
+  }
+  startOverviewFallback();
+  fetchOverviewSnapshot().catch((err) => {
+    console.warn("Initial overview fetch failed", err);
+  });
+  connectOverviewWS();
+}
+
+function startOverviewFallback() {
+  if (overviewFallbackTimer) {
+    clearInterval(overviewFallbackTimer);
+  }
+  overviewFallbackTimer = window.setInterval(() => {
+    if (overviewSocket && overviewSocket.readyState === WebSocket.OPEN) {
+      return;
+    }
+    fetchOverviewSnapshot().catch(() => {});
+  }, OVERVIEW_REFRESH_INTERVAL);
+}
+
+function connectOverviewWS() {
+  if (typeof WebSocket === "undefined") {
+    showConnectionBanner("Live overview requires WebSocket support.");
+    return;
+  }
+  if (overviewSocket && (overviewSocket.readyState === WebSocket.OPEN || overviewSocket.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+  const url = `${protocol}://${window.location.host}/ws/overview?limit=${OVERVIEW_LIMIT}`;
+  const socket = new WebSocket(url);
+  overviewSocket = socket;
+
+  socket.addEventListener("open", () => {
+    if (overviewReconnectTimer) {
+      clearTimeout(overviewReconnectTimer);
+      overviewReconnectTimer = null;
+    }
+    hideConnectionBanner();
+    logDebug("Overview websocket connected", { limit: OVERVIEW_LIMIT });
+  });
+
+  socket.addEventListener("message", (event) => {
+    try {
+      const payload = JSON.parse(event.data);
+      renderOverview(payload, "ws");
+    } catch (err) {
+      console.error("Overview payload parsing failed", err);
+    }
+  });
+
+  let disconnectHandled = false;
+  const handleDisconnect = () => {
+    if (disconnectHandled) {
+      return;
+    }
+    disconnectHandled = true;
+    if (overviewSocket === socket) {
+      overviewSocket = null;
+    }
+    showConnectionBanner("Live overview disconnected. Reconnecting…");
+    if (overviewReconnectTimer) {
+      clearTimeout(overviewReconnectTimer);
+    }
+    overviewReconnectTimer = window.setTimeout(() => {
+      overviewReconnectTimer = null;
+      connectOverviewWS();
+    }, 4000);
+  };
+
+  socket.addEventListener("close", handleDisconnect);
+  socket.addEventListener("error", () => {
+    handleDisconnect();
+    socket.close();
+  });
+}
+
+function fetchOverviewSnapshot() {
+  if (!overviewGrid) {
+    return Promise.resolve();
+  }
+  const url = `/api/overview?limit=${OVERVIEW_LIMIT}`;
+  return fetchJSON(url)
+    .then((snapshot) => {
+      renderOverview(snapshot, "http");
+      hideConnectionBanner();
+      return snapshot;
+    })
+    .catch((err) => {
+      showConnectionBanner("Unable to refresh overview. Retrying…");
+      throw err;
+    });
+}
+
+function renderOverview(snapshot, source) {
+  if (!overviewGrid) {
+    return;
+  }
+  if (!snapshot || !Array.isArray(snapshot.items) || !snapshot.items.length) {
+    overviewGrid.innerHTML = `<div class="overview-empty">No overview data available yet.</div>`;
+    if (overviewMeta) {
+      overviewMeta.textContent = "Waiting for live data…";
+    }
+    return;
+  }
+
+  updateOverviewMeta(snapshot);
+
+  const fragment = document.createDocumentFragment();
+  snapshot.items.slice(0, OVERVIEW_LIMIT + 1).forEach((item) => {
+    fragment.appendChild(buildOverviewCard(item));
+  });
+
+  if (typeof overviewGrid.replaceChildren === "function") {
+    overviewGrid.replaceChildren(fragment);
+  } else {
+    overviewGrid.innerHTML = "";
+    overviewGrid.appendChild(fragment);
+  }
+  logDebug("Overview snapshot rendered", {
+    source,
+    generated_at: snapshot.generated_at,
+    items: snapshot.items.length,
+  });
+}
+
+function buildOverviewCard(item) {
+  const card = document.createElement("div");
+  card.className = "overview-card";
+  card.dataset.kind = item?.kind || "service";
+
+  const title = document.createElement("div");
+  title.className = "overview-title";
+
+  const name = document.createElement("span");
+  name.className = "overview-name";
+  name.textContent = item?.name || item?.id || "Unknown";
+
+  const kind = document.createElement("span");
+  kind.className = "overview-kind";
+  kind.textContent = item?.kind === "connectivity" ? "Connectivity" : "Service";
+
+  title.append(name, kind);
+
+  const bars = document.createElement("div");
+  bars.className = "overview-bars";
+  const buckets = Array.isArray(item?.buckets) && item.buckets.length
+    ? item.buckets.slice(-OVERVIEW_BUCKET_COUNT)
+    : Array.from({ length: OVERVIEW_BUCKET_COUNT }, () => null);
+
+  buckets.forEach((bucket) => {
+    bars.appendChild(buildOverviewBar(bucket));
+  });
+
+  card.append(title, bars);
+  return card;
+}
+
+function buildOverviewBar(bucket) {
+  const bar = document.createElement("span");
+  bar.className = `overview-bar ${mapOverviewState(bucket?.state)}`;
+  const tooltip = formatOverviewTooltip(bucket);
+  if (tooltip) {
+    bar.title = tooltip;
+  }
+  return bar;
+}
+
+function mapOverviewState(state) {
+  switch (state) {
+    case "issue":
+      return "state-issue";
+    case "ok":
+      return "state-ok";
+    default:
+      return "state-unknown";
+  }
+}
+
+function formatOverviewTooltip(bucket) {
+  if (!bucket) {
+    return "";
+  }
+  const start = bucket?.start ? new Date(bucket.start) : null;
+  const end = bucket?.end ? new Date(bucket.end) : null;
+  const rangeLabel =
+    start && end ? `${formatTimeOnly(start)} – ${formatTimeOnly(end)}` : "Last 10 min";
+  const detail = bucket?.detail ? `\n${bucket.detail}` : "";
+  return `${bucketStateLabel(bucket?.state)} (${rangeLabel})${detail}`;
+}
+
+function bucketStateLabel(state) {
+  switch (state) {
+    case "ok":
+      return "All good";
+    case "issue":
+      return "Issue detected";
+    default:
+      return "No data";
+  }
+}
+
+function updateOverviewMeta(snapshot) {
+  if (!overviewMeta) {
+    return;
+  }
+  if (!snapshot) {
+    overviewMeta.textContent = "Live overview unavailable";
+    return;
+  }
+  const start = snapshot.range_start ? new Date(snapshot.range_start) : null;
+  const end = snapshot.range_end ? new Date(snapshot.range_end) : null;
+  const updated = snapshot.generated_at ? new Date(snapshot.generated_at) : null;
+  const windowLabel =
+    start && end ? `${formatTimeOnly(start)} – ${formatTimeOnly(end)}` : "Last 30 minutes";
+  const updateLabel = updated ? `updated ${formatTimeOnly(updated)}` : "waiting for data";
+  overviewMeta.textContent = `${windowLabel} • ${updateLabel}`;
+}
+
+function formatTimeOnly(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function showConnectionBanner(message) {
+  if (!connectionBanner) {
+    return;
+  }
+  connectionBanner.textContent = message;
+  connectionBanner.hidden = false;
+}
+
+function hideConnectionBanner() {
+  if (!connectionBanner) {
+    return;
+  }
+  connectionBanner.hidden = true;
 }
 

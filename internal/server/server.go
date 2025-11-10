@@ -133,6 +133,8 @@ func (s *Server) registerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/node/history", s.handleNodeHistory)
 	mux.HandleFunc("/api/node/uptime", s.handleNodeUptime)
 	mux.HandleFunc("/api/cluster", s.handleCluster)
+	mux.HandleFunc("/api/overview", s.handleOverview)
+	mux.HandleFunc("/ws/overview", s.handleOverviewWS)
 }
 
 func (s *Server) handleLatest(w http.ResponseWriter, _ *http.Request) {

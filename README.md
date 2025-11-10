@@ -10,6 +10,7 @@ JobMonitor is a lightweight Go service that watches selected systemd units, stor
 - JSON history stored at `.dist/data/status_history.json` (UTC timestamp plus result for every service).
 - REST endpoints for local node data (`/api/node/status`, `/api/node/history`, `/api/node/uptime`) and a combined `/api/cluster`.
 - Modern dark UI at `http://localhost:8080` with cards, sparkline-style timelines, and an incident list. Default view covers the last 24 hours with a one-click toggle for a 30-day history, and missed samples count towards downtime.
+- Live **Overview** view optimised for landscape phones that summarizes connectivity plus the first nine services with three 10-minute bars (last 30 minutes), keeps data fresh via WebSocket updates every 60 seconds, and shows a red banner whenever live updates pause.
 - Peer aggregation: every node can fetch snapshots from other JobMonitor instances.
 
 ## Configuration
@@ -64,6 +65,8 @@ go build ./cmd/jobmonitor
 - `/api/node/history?range=24h|30d` - filtered history window for the current node.
 - `/api/node/uptime?range=24h|30d` - uptime calculations that treat missing samples as downtime.
 - `/api/cluster?range=24h|30d` - aggregated snapshot combining the local node with all reachable peers (used by the UI).
+- `/api/overview?limit=9` - compact 30-minute snapshot (connectivity + services) consumed by the Overview view; `limit` caps the number of service rows.
+- `/ws/overview?limit=9` - WebSocket stream that pushes the same overview snapshot immediately on connect and every 60 seconds (the UI auto-reconnects and shows a banner when the stream is unavailable).
 
 ## Sample history entry
 ```json
