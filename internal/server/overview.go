@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"sort"
@@ -29,17 +30,7 @@ const (
 
 var overviewUpgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		origin := r.Header.Get("Origin")
-		if origin == "" {
-			return true
-		}
-		u, err := url.Parse(origin)
-		if err != nil {
-			return false
-		}
-		host := strings.ToLower(strings.TrimSpace(r.Host))
-		originHost := strings.ToLower(strings.TrimSpace(u.Host))
-		return host == originHost
+		return allowOverviewOrigin(r, r.Header.Get("Origin"))
 	},
 }
 
@@ -456,6 +447,45 @@ func overviewRangeKey(start, end time.Time) string {
 	default:
 		return ""
 	}
+}
+
+func allowOverviewOrigin(r *http.Request, origin string) bool {
+	if origin == "" {
+		return true
+	}
+	u, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+	originHost := normalizeHost(u.Host)
+	if originHost == "" {
+		return false
+	}
+	candidates := []string{normalizeHost(r.Host)}
+	if forwarded := r.Header.Get("X-Forwarded-Host"); forwarded != "" {
+		for _, segment := range strings.Split(forwarded, ",") {
+			if candidate := normalizeHost(segment); candidate != "" {
+				candidates = append(candidates, candidate)
+			}
+		}
+	}
+	for _, candidate := range candidates {
+		if candidate != "" && candidate == originHost {
+			return true
+		}
+	}
+	return false
+}
+
+func normalizeHost(value string) string {
+	host := strings.TrimSpace(value)
+	if host == "" {
+		return ""
+	}
+	if h, _, err := net.SplitHostPort(host); err == nil && h != "" {
+		host = h
+	}
+	return strings.ToLower(host)
 }
 
 func (s *Server) buildOverviewSnapshot(limit int) overviewSnapshot {
