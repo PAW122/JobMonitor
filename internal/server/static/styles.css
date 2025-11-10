@@ -75,6 +75,14 @@ body {
   color: #e2e8f0;
 }
 
+body[data-view="dashboard"] #overview-panel {
+  display: none;
+}
+
+body[data-view="overview"] [data-dashboard-section] {
+  display: none;
+}
+
 .connection-banner {
   display: none;
   margin-bottom: 1rem;

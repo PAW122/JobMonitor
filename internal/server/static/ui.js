@@ -1282,7 +1282,7 @@ function formatRangeDetail(start, end) {
     hour: "2-digit",
     minute: "2-digit",
   });
-  return `${fmt.format(start)} – ${fmt.format(end)}`;
+  return `${fmt.format(start)} - ${fmt.format(end)}`;
 }
 
 async function fetchJSON(url) {
@@ -1331,6 +1331,16 @@ function setActiveView(view) {
   });
   if (overviewPanel) {
     overviewPanel.hidden = currentViewMode !== "overview";
+  }
+  if (document.body) {
+    document.body.dataset.view = currentViewMode;
+  }
+  if (connectionBanner) {
+    if (currentViewMode !== "overview") {
+      connectionBanner.hidden = true;
+    } else if (!overviewSocket || overviewSocket.readyState !== WebSocket.OPEN) {
+      showConnectionBanner("Live overview updates paused. Retrying connection...");
+    }
   }
   if (changed) {
     logDebug("View switched", { view: currentViewMode });
@@ -1400,7 +1410,7 @@ function connectOverviewWS() {
     if (overviewSocket === socket) {
       overviewSocket = null;
     }
-    showConnectionBanner("Live overview disconnected. Reconnecting…");
+    showConnectionBanner("Live overview disconnected. Reconnecting...");
     if (overviewReconnectTimer) {
       clearTimeout(overviewReconnectTimer);
     }
@@ -1429,7 +1439,7 @@ function fetchOverviewSnapshot() {
       return snapshot;
     })
     .catch((err) => {
-      showConnectionBanner("Unable to refresh overview. Retrying…");
+      showConnectionBanner("Unable to refresh overview. Retrying...");
       throw err;
     });
 }
@@ -1441,7 +1451,7 @@ function renderOverview(snapshot, source) {
   if (!snapshot || !Array.isArray(snapshot.items) || !snapshot.items.length) {
     overviewGrid.innerHTML = `<div class="overview-empty">No overview data available yet.</div>`;
     if (overviewMeta) {
-      overviewMeta.textContent = "Waiting for live data…";
+    overviewMeta.textContent = "Waiting for live data...";
     }
     return;
   }
@@ -1449,7 +1459,7 @@ function renderOverview(snapshot, source) {
   updateOverviewMeta(snapshot);
 
   const fragment = document.createDocumentFragment();
-  snapshot.items.slice(0, OVERVIEW_LIMIT + 1).forEach((item) => {
+  snapshot.items.forEach((item) => {
     fragment.appendChild(buildOverviewCard(item));
   });
 
@@ -1526,7 +1536,7 @@ function formatOverviewTooltip(bucket) {
   const start = bucket?.start ? new Date(bucket.start) : null;
   const end = bucket?.end ? new Date(bucket.end) : null;
   const rangeLabel =
-    start && end ? `${formatTimeOnly(start)} – ${formatTimeOnly(end)}` : "Last 10 min";
+    start && end ? `${formatTimeOnly(start)} - ${formatTimeOnly(end)}` : "Last 10 min";
   const detail = bucket?.detail ? `\n${bucket.detail}` : "";
   return `${bucketStateLabel(bucket?.state)} (${rangeLabel})${detail}`;
 }
@@ -1554,9 +1564,9 @@ function updateOverviewMeta(snapshot) {
   const end = snapshot.range_end ? new Date(snapshot.range_end) : null;
   const updated = snapshot.generated_at ? new Date(snapshot.generated_at) : null;
   const windowLabel =
-    start && end ? `${formatTimeOnly(start)} – ${formatTimeOnly(end)}` : "Last 30 minutes";
+    start && end ? `${formatTimeOnly(start)} - ${formatTimeOnly(end)}` : "Last 30 minutes";
   const updateLabel = updated ? `updated ${formatTimeOnly(updated)}` : "waiting for data";
-  overviewMeta.textContent = `${windowLabel} • ${updateLabel}`;
+  overviewMeta.textContent = `${windowLabel} | ${updateLabel}`;
 }
 
 function formatTimeOnly(date) {
@@ -1571,6 +1581,10 @@ function formatTimeOnly(date) {
 
 function showConnectionBanner(message) {
   if (!connectionBanner) {
+    return;
+  }
+  if (currentViewMode !== "overview") {
+    connectionBanner.hidden = true;
     return;
   }
   connectionBanner.textContent = message;

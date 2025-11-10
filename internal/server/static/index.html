@@ -5,7 +5,7 @@
     <title>JobMonitor - Status Dashboard</title>
     <link rel="stylesheet" href="/static/styles.css?v=20251108" />
   </head>
-  <body>
+  <body data-view="dashboard">
     <div class="page-wrapper">
       <header class="page-header">
         <div>
@@ -28,14 +28,14 @@
       </div>
 
       <div id="connection-banner" class="connection-banner" role="status" aria-live="polite" hidden>
-        Live overview updates paused. Retrying connection…
+        Live overview updates paused. Retrying connection...
       </div>
 
       <main>
         <section class="overview-panel" id="overview-panel" hidden>
           <div class="overview-head">
             <h2>Live Overview</h2>
-            <span class="meta-text" id="overview-meta">Waiting for data…</span>
+            <span class="meta-text" id="overview-meta">Waiting for data...</span>
           </div>
           <div class="overview-grid" id="overview-grid">
             <div class="overview-empty">
