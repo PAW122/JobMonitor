@@ -54,10 +54,12 @@ type overviewSnapshot struct {
 }
 
 type overviewItem struct {
-	ID      string           `json:"id"`
-	Name    string           `json:"name"`
-	Kind    string           `json:"kind"`
-	Buckets []overviewBucket `json:"buckets"`
+	ID       string           `json:"id"`
+	Name     string           `json:"name"`
+	Kind     string           `json:"kind"`
+	NodeID   string           `json:"node_id,omitempty"`
+	NodeName string           `json:"node_name,omitempty"`
+	Buckets  []overviewBucket `json:"buckets"`
 }
 
 type overviewBucket struct {
@@ -78,6 +80,8 @@ type overviewServiceEntry struct {
 	timeline []models.TimelinePoint
 	order    int
 	hasOrder bool
+	nodeID   string
+	nodeName string
 }
 
 type overviewNodeGroup struct {
@@ -138,27 +142,36 @@ func writeOverviewPayload(conn *websocket.Conn, payload overviewSnapshot) error 
 	return conn.WriteJSON(payload)
 }
 
-func (s *Server) overviewConnectivityItem(buckets []timeBucket) overviewItem {
-	start := time.Time{}
-	end := time.Time{}
-	if len(buckets) > 0 {
-		start = buckets[0].Start
-		end = buckets[len(buckets)-1].End
+func (s *Server) overviewConnectivityItems(snapshot cluster.ClusterSnapshot, buckets []timeBucket) []overviewItem {
+	items := make([]overviewItem, 0, len(snapshot.Nodes))
+	for _, node := range snapshot.Nodes {
+		nodeID := strings.TrimSpace(node.Node.ID)
+		items = append(items, overviewItem{
+			ID:       buildConnectivityID(nodeID),
+			Name:     "Connectivity",
+			Kind:     overviewConnectivityKey,
+			NodeID:   nodeID,
+			NodeName: fallbackName(node.Node),
+			Buckets:  buildConnectivityBuckets(buckets, node.ConnectivityHistory),
+		})
 	}
-	history := s.connectivityHistory(start, end)
-	return overviewItem{
-		ID:      overviewConnectivityID,
-		Name:    "Connectivity",
-		Kind:    overviewConnectivityKey,
-		Buckets: buildConnectivityBuckets(buckets, history),
+	if len(items) == 0 {
+		items = append(items, overviewItem{
+			ID:       buildConnectivityID(s.node.ID),
+			Name:     "Connectivity",
+			Kind:     overviewConnectivityKey,
+			NodeID:   s.node.ID,
+			NodeName: fallbackName(s.node),
+			Buckets:  newOverviewBuckets(buckets),
+		})
 	}
+	return items
 }
 
-func (s *Server) overviewServiceItems(limit int, buckets []timeBucket, start, end time.Time) []overviewItem {
+func (s *Server) overviewServiceItems(snapshot cluster.ClusterSnapshot, limit int, buckets []timeBucket) []overviewItem {
 	if len(buckets) == 0 {
 		return nil
 	}
-	snapshot := s.overviewClusterSnapshot(start, end)
 	groups := s.buildServiceGroups(snapshot)
 	if len(groups) == 0 {
 		return nil
@@ -167,10 +180,12 @@ func (s *Server) overviewServiceItems(limit int, buckets []timeBucket, start, en
 	items := make([]overviewItem, 0, len(entries))
 	for _, entry := range entries {
 		items = append(items, overviewItem{
-			ID:      entry.id,
-			Name:    entry.name,
-			Kind:    "service",
-			Buckets: mapTimelineToBuckets(entry.timeline, buckets),
+			ID:       entry.id,
+			Name:     entry.name,
+			Kind:     "service",
+			NodeID:   entry.nodeID,
+			NodeName: entry.nodeName,
+			Buckets:  mapTimelineToBuckets(entry.timeline, buckets),
 		})
 	}
 	return items
@@ -233,6 +248,8 @@ func (s *Server) buildServiceGroups(snapshot cluster.ClusterSnapshot) []overview
 				id:       fmt.Sprintf("%s::%s", group.nodeID, timeline.ServiceID),
 				name:     displayName,
 				timeline: timeline.Timeline,
+				nodeID:   group.nodeID,
+				nodeName: group.nodeName,
 			}
 			if idx, ok := order[timeline.ServiceID]; ok {
 				entry.order = idx
@@ -421,6 +438,14 @@ func (s *Server) isLocalPeer(peer cluster.PeerSnapshot) bool {
 	return false
 }
 
+func buildConnectivityID(nodeID string) string {
+	id := strings.TrimSpace(nodeID)
+	if id == "" {
+		return overviewConnectivityID
+	}
+	return fmt.Sprintf("%s::%s", id, overviewConnectivityID)
+}
+
 func overviewRangeKey(start, end time.Time) string {
 	duration := end.Sub(start)
 	switch {
@@ -438,12 +463,12 @@ func (s *Server) buildOverviewSnapshot(limit int) overviewSnapshot {
 	bucketDuration := time.Duration(overviewBucketMinutes) * time.Minute
 	rangeStart := now.Add(-bucketDuration * overviewBucketCount)
 	buckets := buildTimeBuckets(rangeStart, bucketDuration, overviewBucketCount)
+	snapshot := s.overviewClusterSnapshot(rangeStart, now)
 
-	items := make([]overviewItem, 0, limit+1)
+	items := make([]overviewItem, 0, limit+len(snapshot.Nodes))
 	if len(buckets) > 0 {
-		items = append(items, s.overviewConnectivityItem(buckets))
-		serviceItems := s.overviewServiceItems(limit, buckets, rangeStart, now)
-		items = append(items, serviceItems...)
+		items = append(items, s.overviewConnectivityItems(snapshot, buckets)...)
+		items = append(items, s.overviewServiceItems(snapshot, limit, buckets)...)
 	}
 
 	return overviewSnapshot{

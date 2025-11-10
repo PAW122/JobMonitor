@@ -205,6 +205,12 @@ main {
   gap: 0.5rem;
 }
 
+.overview-title.stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+}
+
 .overview-name {
   font-size: 0.95rem;
   font-weight: 600;
@@ -216,6 +222,15 @@ main {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #94a3b8;
+  white-space: nowrap;
+}
+
+.overview-kind.secondary {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.8rem;
+  color: #cbd5f5;
+  white-space: normal;
 }
 
 .overview-bars {

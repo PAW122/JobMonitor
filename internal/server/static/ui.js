@@ -1480,6 +1480,9 @@ function buildOverviewCard(item) {
   const card = document.createElement("div");
   card.className = "overview-card";
   card.dataset.kind = item?.kind || "service";
+  if (item?.node_name) {
+    card.dataset.nodeName = item.node_name;
+  }
 
   const title = document.createElement("div");
   title.className = "overview-title";
@@ -1490,7 +1493,15 @@ function buildOverviewCard(item) {
 
   const kind = document.createElement("span");
   kind.className = "overview-kind";
-  kind.textContent = item?.kind === "connectivity" ? "Connectivity" : "Service";
+  const nodeLabel = typeof item?.node_name === "string" ? item.node_name.trim() : "";
+  if (item?.kind === "connectivity") {
+    title.classList.add("stacked");
+    kind.classList.add("secondary");
+    kind.textContent = nodeLabel ? `(${nodeLabel})` : "(server)";
+    name.textContent = "Connectivity";
+  } else {
+    kind.textContent = "Service";
+  }
 
   title.append(name, kind);
 
