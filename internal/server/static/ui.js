@@ -34,9 +34,8 @@ const debugEnabled = Boolean(debugPanel && debugLogEl);
 
 let currentRange = "24h";
 let currentViewMode = "dashboard";
-let overviewSocket = null;
-let overviewReconnectTimer = null;
-let overviewFallbackTimer = null;
+let overviewPollTimer = null;
+let lastOverviewSuccess = 0;
 
 function logDebug(message, data) {
   if (!debugEnabled) {
@@ -1305,7 +1304,7 @@ setInterval(() => {
     console.error("Scheduled refresh failed", err),
   );
 }, REFRESH_INTERVAL);
-initOverviewChannel();
+initOverviewPolling();
 
 function setActiveRange(range) {
   if (range) {
@@ -1338,8 +1337,10 @@ function setActiveView(view) {
   if (connectionBanner) {
     if (currentViewMode !== "overview") {
       connectionBanner.hidden = true;
-    } else if (!overviewSocket || overviewSocket.readyState !== WebSocket.OPEN) {
-      showConnectionBanner("Live overview updates paused. Retrying connection...");
+    } else if (!hasRecentOverviewSample()) {
+      showConnectionBanner("Live overview waiting for data...");
+    } else {
+      connectionBanner.hidden = true;
     }
   }
   if (changed) {
@@ -1347,84 +1348,30 @@ function setActiveView(view) {
   }
 }
 
-function initOverviewChannel() {
+function initOverviewPolling() {
   if (!overviewGrid || !overviewPanel) {
     return;
   }
-  startOverviewFallback();
   fetchOverviewSnapshot().catch((err) => {
     console.warn("Initial overview fetch failed", err);
   });
-  connectOverviewWS();
+  startOverviewPolling();
 }
 
-function startOverviewFallback() {
-  if (overviewFallbackTimer) {
-    clearInterval(overviewFallbackTimer);
+function startOverviewPolling() {
+  if (overviewPollTimer) {
+    clearInterval(overviewPollTimer);
   }
-  overviewFallbackTimer = window.setInterval(() => {
-    if (overviewSocket && overviewSocket.readyState === WebSocket.OPEN) {
-      return;
-    }
+  overviewPollTimer = window.setInterval(() => {
     fetchOverviewSnapshot().catch(() => {});
   }, OVERVIEW_REFRESH_INTERVAL);
 }
 
-function connectOverviewWS() {
-  if (typeof WebSocket === "undefined") {
-    showConnectionBanner("Live overview requires WebSocket support.");
-    return;
+function hasRecentOverviewSample() {
+  if (!lastOverviewSuccess) {
+    return false;
   }
-  if (overviewSocket && (overviewSocket.readyState === WebSocket.OPEN || overviewSocket.readyState === WebSocket.CONNECTING)) {
-    return;
-  }
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  const url = `${protocol}://${window.location.host}/ws/overview?limit=${OVERVIEW_LIMIT}`;
-  const socket = new WebSocket(url);
-  overviewSocket = socket;
-
-  socket.addEventListener("open", () => {
-    if (overviewReconnectTimer) {
-      clearTimeout(overviewReconnectTimer);
-      overviewReconnectTimer = null;
-    }
-    hideConnectionBanner();
-    logDebug("Overview websocket connected", { limit: OVERVIEW_LIMIT });
-  });
-
-  socket.addEventListener("message", (event) => {
-    try {
-      const payload = JSON.parse(event.data);
-      renderOverview(payload, "ws");
-    } catch (err) {
-      console.error("Overview payload parsing failed", err);
-    }
-  });
-
-  let disconnectHandled = false;
-  const handleDisconnect = () => {
-    if (disconnectHandled) {
-      return;
-    }
-    disconnectHandled = true;
-    if (overviewSocket === socket) {
-      overviewSocket = null;
-    }
-    showConnectionBanner("Live overview disconnected. Reconnecting...");
-    if (overviewReconnectTimer) {
-      clearTimeout(overviewReconnectTimer);
-    }
-    overviewReconnectTimer = window.setTimeout(() => {
-      overviewReconnectTimer = null;
-      connectOverviewWS();
-    }, 4000);
-  };
-
-  socket.addEventListener("close", handleDisconnect);
-  socket.addEventListener("error", () => {
-    handleDisconnect();
-    socket.close();
-  });
+  return Date.now() - lastOverviewSuccess <= OVERVIEW_REFRESH_INTERVAL * 1.5;
 }
 
 function fetchOverviewSnapshot() {
@@ -1435,11 +1382,16 @@ function fetchOverviewSnapshot() {
   return fetchJSON(url)
     .then((snapshot) => {
       renderOverview(snapshot, "http");
-      hideConnectionBanner();
+      lastOverviewSuccess = Date.now();
+      if (currentViewMode === "overview") {
+        hideConnectionBanner();
+      }
       return snapshot;
     })
     .catch((err) => {
-      showConnectionBanner("Unable to refresh overview. Retrying...");
+      if (currentViewMode === "overview") {
+        showConnectionBanner("Unable to refresh overview. Retrying...");
+      }
       throw err;
     });
 }
