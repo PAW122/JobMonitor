@@ -2,6 +2,9 @@
 
 JobMonitor is a lightweight Go service that watches selected systemd units, stores their status history in JSON, and exposes a status-page style dashboard. Each instance can also pull data from other JobMonitor nodes so you can observe multiple servers from one place.
 
+## Live Demo
+https://status.tsunamistudio.net/
+
 ![JobMonitor dashboard](image.png)
 
 ## Features
