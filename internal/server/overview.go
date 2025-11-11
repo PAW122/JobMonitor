@@ -461,20 +461,29 @@ func allowOverviewOrigin(r *http.Request, origin string) bool {
 	if originHost == "" {
 		return false
 	}
-	candidates := []string{normalizeHost(r.Host)}
-	if forwarded := r.Header.Get("X-Forwarded-Host"); forwarded != "" {
-		for _, segment := range strings.Split(forwarded, ",") {
-			if candidate := normalizeHost(segment); candidate != "" {
-				candidates = append(candidates, candidate)
-			}
-		}
-	}
+	candidates := collectHostCandidates(r)
 	for _, candidate := range candidates {
 		if candidate != "" && candidate == originHost {
 			return true
 		}
 	}
 	return false
+}
+
+func collectHostCandidates(r *http.Request) []string {
+	candidates := []string{normalizeHost(r.Host)}
+	for _, header := range []string{"X-Forwarded-Host", "X-Original-Host", "CF-Connecting-Host"} {
+		raw := r.Header.Get(header)
+		if raw == "" {
+			continue
+		}
+		for _, segment := range strings.Split(raw, ",") {
+			if candidate := normalizeHost(segment); candidate != "" {
+				candidates = append(candidates, candidate)
+			}
+		}
+	}
+	return candidates
 }
 
 func normalizeHost(value string) string {
